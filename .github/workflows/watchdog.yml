@@ -1,0 +1,42 @@
+name: Farm Watchdog
+
+# =============================================================================
+#  Optional auto-resume so the farm keeps coming back even if you forget to
+#  click "Run workflow". Runs every 5 hours.
+#
+#  How it works:
+#   - Create an EMPTY file named "KEEP_FARM" in the repo root (via the GitHub
+#     website: Add file -> Create new file -> name it KEEP_FARM) to ENABLE
+#     auto re-dispatch. Delete that file to STOP the farm for good.
+#   - Each 6-hour farm run restarts the same stable hostnames
+#     (agent-1 .. agent-20), so in MT5 you add the agents once and each new
+#     run simply brings them back online.
+#
+#  SECRET REQUIRED:
+#   FARM_PAT = a Personal Access Token (classic, scopes: repo + workflow) that
+#   can dispatch workflows. GITHUB_TOKEN can NOT re-trigger workflows, so a
+#   PAT is mandatory.
+# =============================================================================
+
+on:
+  schedule:
+    - cron: "0 */5 * * *"
+  workflow_dispatch:
+
+jobs:
+  rerun:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Re-dispatch farm if KEEP_FARM marker exists
+        env:
+          GH_TOKEN: ${{ secrets.FARM_PAT }}
+        shell: bash
+        run: |
+          if [ -f KEEP_FARM ]; then
+            echo ">> KEEP_FARM found -> dispatching MT5 Agent Farm v2"
+            gh workflow run "MT5 Agent Farm v2" -f agent_count=20
+          else
+            echo ">> KEEP_FARM not present -> farm stays stopped"
+          fi
