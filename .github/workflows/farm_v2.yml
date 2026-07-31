@@ -84,7 +84,7 @@ jobs:
           Invoke-WebRequest "https://pkgs.tailscale.com/stable/tailscale-setup-latest-amd64.msi" -OutFile ts.msi
           Start-Process msiexec -ArgumentList "/i","$PWD\ts.msi","/qn","/norestart" -Wait
           $ts = "C:\Program Files\Tailscale\tailscale.exe"
-          & $ts up --authkey=$env:TS_AUTHKEY --hostname="agent-${{ matrix.index }}" --ephemeral
+          & $ts up --authkey=$env:TS_AUTHKEY --hostname="agent-${{ matrix.index }}"
           Start-Sleep -Seconds 6
           $ip = (& $ts ip -4 | Select-Object -First 1).Trim()
           Write-Output "agent-${{ matrix.index }}  tailnet-ip=$ip"
@@ -161,7 +161,7 @@ jobs:
             if (-not $tsSvc -or $tsSvc.Status -ne "Running") {
               Write-Output ">> tailscale down, restarting"
               Start-Sleep -Seconds 2
-              & $ts up --authkey=$env:TS_AUTHKEY --hostname="agent-${{ matrix.index }}" --ephemeral
+              & $ts up --authkey=$env:TS_AUTHKEY --hostname="agent-${{ matrix.index }}"
             }
 
             # self-heal metatester services
@@ -205,7 +205,7 @@ jobs:
           Invoke-WebRequest "https://pkgs.tailscale.com/stable/tailscale-setup-latest-amd64.msi" -OutFile ts.msi
           Start-Process msiexec -ArgumentList "/i","$PWD\ts.msi","/qn","/norestart" -Wait
           $ts = "C:\Program Files\Tailscale\tailscale.exe"
-          & $ts up --authkey=$env:TS_AUTHKEY --hostname="master-1" --ephemeral
+          & $ts up --authkey=$env:TS_AUTHKEY --hostname="master-1"
           Start-Sleep -Seconds 6
           $ip = (& $ts ip -4 | Select-Object -First 1).Trim()
           Write-Output "MASTER READY"
@@ -279,7 +279,7 @@ jobs:
             if (-not $tsSvc -or $tsSvc.Status -ne "Running") {
               Write-Output ">> tailscale down, rejoining as master-1"
               Start-Sleep -Seconds 2
-              & $ts up --authkey=$env:TS_AUTHKEY --hostname="master-1" --ephemeral
+              & $ts up --authkey=$env:TS_AUTHKEY --hostname="master-1"
             }
             Get-Service -Name TermService -ErrorAction SilentlyContinue | Where-Object { $_.Status -ne "Running" } | ForEach-Object {
               Write-Output ">> restarting TermService"
