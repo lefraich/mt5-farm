@@ -1,0 +1,151 @@
+name: MT5 Agent Farm v2
+
+# =============================================================================
+#  WHY THIS IS BETTER THAN rdp_workflow.yml
+#  ---------------------------------------------------------------------------
+#  1) Run this workflow from a PUBLIC repository (Settings -> General -> make
+#     repo public). GitHub then gives you 4 vCPU / 16 GB Windows runners
+#     (docs.github.com/en/actions/reference/runners/github-hosted-runners) and
+#     usage is FREE + UNLIMITED. On a PRIVATE repo you only get 2 vCPU / 8 GB
+#     and 2000 minutes/month  ->  that is exactly why you saw "only 2 cores".
+#  2) Up to 20 concurrent runners x 4 agents = 80 Strategy Tester agents
+#     (was 3 runners x 4 agents = 12 agents on 2-core machines, oversubscribed).
+#  3) bore.pub is replaced by Tailscale (free forever, 100 devices). The agent
+#     hostname is STABLE (agent-1 .. agent-20), so you add each agent to MT5
+#     ONCE and it reconnects every time the farm starts. No more random
+#     bore.pub ports that die after an hour.
+#  4) The keep-alive step self-heals (restarts dead metatester / tailscale) and
+#     heartbeats every 15 min, so the job survives the full ~6 h window.
+#
+#  SECRETS YOU MUST ADD (repo Settings -> Secrets and variables -> Actions):
+#    TAILSCALE_AUTHKEY = key from https://login.tailscale.com/admin/settings/keys
+# =============================================================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      agent_count:
+        description: Number of concurrent Windows runners (1-20)
+        type: number
+        default: 20
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mt5-farm
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    name: agent-${{ matrix.index }}
+    runs-on: windows-latest     # public repo => 4 vCPU / 16 GB, free + unlimited
+    timeout-minutes: 350        # hard GitHub cap is 360
+    if: fromJSON(inputs.agent_count) >= matrix.index
+    strategy:
+      fail-fast: false
+      max-parallel: 20          # free-plan concurrency cap (see Actions limits)
+      matrix:
+        index: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ------------------------------------------------------------------
+      # Stable network: every runner joins your Tailscale tailnet with a
+      # FIXED hostname, so in MT5 you add "agent-1".."agent-20" once.
+      # ------------------------------------------------------------------
+      - name: Join Tailscale (stable hostname, no bore.pub)
+        shell: pwsh
+        env:
+          TS_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          Invoke-WebRequest "https://pkgs.tailscale.com/stable/tailscale-setup-latest-amd64.msi" -OutFile ts.msi
+          Start-Process msiexec -ArgumentList "/i","$PWD\ts.msi","/qn","/norestart" -Wait
+          $ts = "C:\Program Files\Tailscale\tailscale.exe"
+          & $ts up --authkey=$env:TS_AUTHKEY --hostname="agent-${{ matrix.index }}"
+          Start-Sleep -Seconds 6
+          $ip = (& $ts ip -4 | Select-Object -First 1).Trim()
+          Write-Output "agent-${{ matrix.index }}  tailnet-ip=$ip"
+          Write-Output "" >> $env:GITHUB_STEP_SUMMARY
+          Write-Output "agent-${{ matrix.index }} -> $ip (port 3000-3003, password Test12345!)" >> $env:GITHUB_STEP_SUMMARY
+
+      # ------------------------------------------------------------------
+      # Windows runner firewall blocks inbound agent ports, so disable it.
+      # ------------------------------------------------------------------
+      - name: Disable firewall
+        shell: pwsh
+        run: |
+          Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False -ErrorAction SilentlyContinue
+          Write-Output "firewall disabled"
+
+      # ------------------------------------------------------------------
+      # Download + silently install MetaTrader 5 (includes metatester64.exe)
+      # ------------------------------------------------------------------
+      - name: Install MetaTrader 5
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Invoke-WebRequest "https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe" -OutFile "$env:USERPROFILE\mt5setup.exe"
+          Start-Process "$env:USERPROFILE\mt5setup.exe" "/auto" -Wait
+          if (-not (Test-Path "C:\Program Files\MetaTrader 5\metatester64.exe")) {
+            Write-Error "metatester64.exe not found after install"
+          }
+          Write-Output "MT5 installed"
+
+      # ------------------------------------------------------------------
+      # 4 MetaTester services = 4 agents (1 per core on a 4-core runner).
+      # /address:0.0.0.0  binds all interfaces so the master reaches the
+      # agent over the Tailscale network. If your build rejects 0.0.0.0,
+      # replace it with the tailnet IP printed in the step above.
+      # ------------------------------------------------------------------
+      - name: Install 4 MetaTester services
+        shell: pwsh
+        run: |
+          $mt = "C:\Program Files\MetaTrader 5\metatester64.exe"
+          foreach ($p in 3000..3003) {
+            & $mt /install /address:0.0.0.0:$p /password:Test12345!
+            Write-Output "agent service on port $p installed"
+          }
+          Start-Sleep -Seconds 5
+          Get-Service | Where-Object { $_.Name -like "*MetaTester*" } | ForEach-Object { Write-Output "service: $($_.Name) $($_.Status)" }
+
+      # ------------------------------------------------------------------
+      # Keep the job alive for ~6 h. Every 15 min: heartbeat + restart any
+      # dead agent service or tailscale process. Heartbeat log also prevents
+      # GitHub from thinking the job is stuck.
+      # ------------------------------------------------------------------
+      - name: Keep alive + self-heal
+        shell: pwsh
+        env:
+          TS_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
+          $ts = "C:\Program Files\Tailscale\tailscale.exe"
+          $start = Get-Date
+          while ($true) {
+            Start-Sleep -Seconds 900
+            Write-Output "[$((Get-Date).ToString('HH:mm:ss'))] alive | elapsed $([math]::Round(((Get-Date)-$start).TotalMinutes,0)) min"
+
+            # self-heal tailscale service
+            $tsSvc = Get-Service -Name Tailscale -ErrorAction SilentlyContinue
+            if (-not $tsSvc -or $tsSvc.Status -ne "Running") {
+              Write-Output ">> tailscale down, restarting"
+              Start-Sleep -Seconds 2
+              & $ts up --authkey=$env:TS_AUTHKEY --hostname="agent-${{ matrix.index }}"
+            }
+
+            # self-heal metatester services
+            Get-Service | Where-Object { $_.Name -like "*MetaTester*" -and $_.Status -ne "Running" } | ForEach-Object {
+              Write-Output ">> restarting $($_.Name)"
+              Start-Sleep -Seconds 2
+              Start-Service -Name $_.Name -ErrorAction SilentlyContinue
+            }
+          }
+
+      - name: Leave tailscale
+        if: always()
+        shell: pwsh
+        run: |
+          & "C:\Program Files\Tailscale\tailscale.exe" down
+          Write-Output "tailscale down"
