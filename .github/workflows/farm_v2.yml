@@ -169,3 +169,104 @@ jobs:
         run: |
           & "C:\Program Files\Tailscale\tailscale.exe" down
           Write-Output "tailscale down"
+
+  # =========================================================================
+  #  MASTER RDP (like the old main-vps job, but persistent):
+  #   - joins Tailscale with STABLE hostname "master-1"
+  #   - RDP enabled, admin user trader / Test12345!
+  #   - copy/paste works over RDP by default
+  #   - MT5 installed + agents.mt5 (80 agents) on the Public desktop
+  #   - the Farm Watchdog re-dispatches the farm every 5 h, and the queued
+  #     run starts the instant this one ends -> near-continuous 24/7 uptime
+  #   RDP from your PC:  mstsc -> "master-1" -> trader / Test12345!
+  # =========================================================================
+  master:
+    name: master-vps
+    runs-on: windows-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Join Tailscale (stable hostname master-1)
+        shell: pwsh
+        env:
+          TS_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          Invoke-WebRequest "https://pkgs.tailscale.com/stable/tailscale-setup-latest-amd64.msi" -OutFile ts.msi
+          Start-Process msiexec -ArgumentList "/i","$PWD\ts.msi","/qn","/norestart" -Wait
+          $ts = "C:\Program Files\Tailscale\tailscale.exe"
+          & $ts up --authkey=$env:TS_AUTHKEY --hostname="master-1"
+          Start-Sleep -Seconds 6
+          $ip = (& $ts ip -4 | Select-Object -First 1).Trim()
+          Write-Output "MASTER READY"
+          Write-Output ">> RDP address: master-1  (tailnet IP $ip)"
+          Write-Output ">> user: trader    password: Test12345!"
+          Write-Output "" >> $env:GITHUB_STEP_SUMMARY
+          Write-Output "**MASTER RDP READY** - mstsc -> `master-1` | user `trader` | pass `Test12345!` (IP $ip)" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Enable RDP + admin user
+        shell: pwsh
+        run: |
+          powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
+          Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
+          Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "UserAuthentication" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop" -ErrorAction SilentlyContinue
+          Set-Service -Name TermService -StartupType Automatic
+          Start-Service -Name TermService
+          Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False -ErrorAction SilentlyContinue
+          net user trader Test12345! /add /y
+          net localgroup administrators trader /add
+          Write-Output "RDP enabled - user trader (admin) created"
+
+      - name: Install MetaTrader 5
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Invoke-WebRequest "https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe" -OutFile "$env:USERPROFILE\mt5setup.exe"
+          Start-Process "$env:USERPROFILE\mt5setup.exe" "/auto" -Wait
+          if (-not (Test-Path "C:\Program Files\MetaTrader 5\metatester64.exe")) {
+            Write-Error "metatester64.exe not found after install"
+          }
+          Write-Output "MT5 installed"
+
+      - name: Create agents.mt5 (80 farm agents) on Public desktop
+        shell: pwsh
+        run: |
+          $lines = @()
+          for ($i = 1; $i -le 20; $i++) {
+            for ($p = 3000; $p -le 3003; $p++) {
+              $lines += "agent-$i-$p;agent-$i`:$p;Test12345!;GitHub farm runner $i (4-core);1"
+            }
+          }
+          $dest = "C:\Users\Public\Desktop\agents.mt5"
+          [System.IO.File]::WriteAllLines($dest, $lines, (New-Object System.Text.UTF8Encoding($false)))
+          Write-Output "agents.mt5 -> $dest ($($lines.Count) agents)"
+
+      - name: Keep alive + self-heal (master)
+        shell: pwsh
+        env:
+          TS_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
+          $ts = "C:\Program Files\Tailscale\tailscale.exe"
+          while ($true) {
+            Start-Sleep -Seconds 900
+            Write-Output "[$((Get-Date).ToString('HH:mm:ss'))] master alive"
+            $tsSvc = Get-Service -Name Tailscale -ErrorAction SilentlyContinue
+            if (-not $tsSvc -or $tsSvc.Status -ne "Running") {
+              Write-Output ">> tailscale down, rejoining as master-1"
+              Start-Sleep -Seconds 2
+              & $ts up --authkey=$env:TS_AUTHKEY --hostname="master-1"
+            }
+            Get-Service -Name TermService -ErrorAction SilentlyContinue | Where-Object { $_.Status -ne "Running" } | ForEach-Object {
+              Write-Output ">> restarting TermService"
+              Start-Service -Name $_.Name -ErrorAction SilentlyContinue
+            }
+          }
+
+      - name: Leave tailscale
+        if: always()
+        shell: pwsh
+        run: |
+          & "C:\Program Files\Tailscale\tailscale.exe" down
+          Write-Output "tailscale down"
