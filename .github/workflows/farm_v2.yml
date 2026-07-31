@@ -37,16 +37,36 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Generates the exact agent list (1..agent_count) so the matrix below is
+  # dynamic. GitHub rejects `matrix` inside a job-level `if`, so we build the
+  # list here instead.
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      agents: ${{ steps.gen.outputs.agents }}
+    steps:
+      - id: gen
+        shell: bash
+        env:
+          COUNT: ${{ inputs.agent_count }}
+        run: |
+          n=$(( COUNT )); [ -z "$n" ] && n=20
+          [ "$n" -lt 1 ] && n=1
+          [ "$n" -gt 20 ] && n=20
+          agents=$(python3 -c 'import json,sys; print(json.dumps(list(range(1,int(sys.argv[1])+1))))' "$n")
+          echo "agents=$agents" >> "$GITHUB_OUTPUT"
+          echo "agent_count -> $n"
+
   agent:
+    needs: prepare
     name: agent-${{ matrix.index }}
     runs-on: windows-latest     # public repo => 4 vCPU / 16 GB, free + unlimited
     timeout-minutes: 350        # hard GitHub cap is 360
-    if: fromJSON(inputs.agent_count) >= matrix.index
     strategy:
       fail-fast: false
       max-parallel: 20          # free-plan concurrency cap (see Actions limits)
       matrix:
-        index: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+        index: ${{ fromJSON(needs.prepare.outputs.agents) }}
 
     steps:
       - uses: actions/checkout@v4
