@@ -32,10 +32,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: mt5-farm
-  cancel-in-progress: false
-
 jobs:
   # Generates the exact agent list (1..agent_count) so the matrix below is
   # dynamic. GitHub rejects `matrix` inside a job-level `if`, so we build the
