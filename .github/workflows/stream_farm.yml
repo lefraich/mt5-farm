@@ -1,0 +1,224 @@
+name: YouTube Stream Farm
+
+# =============================================================================
+#  SAME infrastructure as the MT5 farm (GitHub Actions + Tailscale + watchdog),
+#  but instead of running metatester64 agents it runs CONTINUOUS LIVE STREAMS
+#  of your own channel videos (newest uploaded video first).
+#
+#  HOW IT WORKS
+#   1) Trigger this workflow (like the MT5 farm).
+#   2) master-1 : joins Tailscale as "master-1", enables RDP, downloads all
+#      channel videos (newest first) so you can watch them over RDP.
+#   3) agent-N  : joins Tailscale, downloads its assigned share of the videos
+#      (stream 1 -> ALL videos when stream_count=1; otherwise round-robin
+#      subsets), builds a playlist and pushes a seamless 6h ffmpeg loop to
+#      YouTube RTMP. Self-heals if ffmpeg dies.
+#   4) After ~6 h the job ends (same GitHub limit as the farm) -> streams end
+#      and become normal videos on your channel. Re-trigger to repeat.
+#
+#  SECRETS REQUIRED (repo Settings -> Secrets -> Actions):
+#    TAILSCALE_AUTHKEY   (already present)
+#    YT_STREAM_KEY       = the Stream Key of the live broadcast you created in
+#                          YouTube Studio -> Go Live -> Stream
+#    YT_STREAM_URL       (optional, default rtmp://a.rtmp.youtube.com/live2)
+#    YT_STREAM_URL_BACKUP(optional, default rtmp://b.rtmp.youtube.com/live2?backup=1)
+# =============================================================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      stream_count:
+        description: عدد اللايفات المتزامنة (ابدأ بـ 1 = كل الفيديوهات في لايف واحد)
+        type: number
+        default: 1
+      channel_url:
+        description: رابط قناتك
+        type: string
+        default: "https://www.youtube.com/@مانو-سطوري"
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      streams: ${{ steps.gen.outputs.streams }}
+    steps:
+      - id: gen
+        shell: bash
+        env:
+          COUNT: ${{ inputs.stream_count }}
+        run: |
+          n=$(( COUNT )); [ -z "$n" ] && n=1
+          [ "$n" -lt 1 ] && n=1
+          [ "$n" -gt 10 ] && n=10
+          streams=$(python3 -c 'import json,sys; print(json.dumps(list(range(1,int(sys.argv[1])+1))))' "$n")
+          echo "streams=$streams" >> "$GITHUB_OUTPUT"
+          echo "stream_count -> $n"
+
+  # =========================================================================
+  #  MASTER: same as the farm's master, but installs streaming tools instead
+  #  of MT5. Downloads all videos (newest first) for you to watch via RDP.
+  #  RDP from your PC: mstsc -> master-1 -> trader / Test12345!
+  # =========================================================================
+  master:
+    name: master-vps
+    runs-on: windows-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Join Tailscale (stable hostname master-1)
+        shell: pwsh
+        env:
+          TS_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          Invoke-WebRequest "https://pkgs.tailscale.com/stable/tailscale-setup-latest-amd64.msi" -OutFile ts.msi
+          Start-Process msiexec -ArgumentList "/i","$PWD\ts.msi","/qn","/norestart" -Wait
+          $ts = "C:\Program Files\Tailscale\tailscale.exe"
+          & $ts up --authkey=$env:TS_AUTHKEY --hostname="master-1"
+          Start-Sleep -Seconds 6
+          $ip = (& $ts ip -4 | Select-Object -First 1).Trim()
+          Write-Output "MASTER READY"
+          Write-Output ">> RDP address: master-1 (tailnet IP $ip)"
+          Write-Output ">> user: trader    password: Test12345!"
+          Write-Output "" >> $env:GITHUB_STEP_SUMMARY
+          Write-Output "**STREAM MASTER READY** - mstsc -> `master-1` | user `trader` | pass `Test12345!`" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Enable RDP + admin user
+        shell: pwsh
+        run: |
+          Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
+          Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "UserAuthentication" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop" -ErrorAction SilentlyContinue
+          Set-Service -Name TermService -StartupType Automatic
+          Start-Service -Name TermService
+          Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False -ErrorAction SilentlyContinue
+          net user trader Test12345! /add /y
+          net localgroup administrators trader /add
+          Write-Output "RDP enabled - user trader (admin) created"
+
+      - name: Install ffmpeg + yt-dlp
+        shell: pwsh
+        run: |
+          choco install ffmpeg -y --no-progress
+          python -m pip install --quiet yt-dlp
+          ffmpeg -version | Select-Object -First 1
+          python -m yt_dlp --version
+
+      - name: Download all channel videos (newest first) for viewing
+        shell: pwsh
+        env:
+          CHANNEL: ${{ inputs.channel_url }}
+        run: |
+          python stream\tool.py master "$env:CHANNEL" "C:\Users\Public\videos"
+          Write-Output "videos ready on master for RDP viewing"
+
+      - name: Keep alive + self-heal (master)
+        shell: pwsh
+        env:
+          TS_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
+          $ts = "C:\Program Files\Tailscale\tailscale.exe"
+          while ($true) {
+            Start-Sleep -Seconds 900
+            Write-Output "[$((Get-Date).ToString('HH:mm:ss'))] master alive"
+            $tsSvc = Get-Service -Name Tailscale -ErrorAction SilentlyContinue
+            if (-not $tsSvc -or $tsSvc.Status -ne "Running") {
+              Write-Output ">> tailscale down, rejoining as master-1"
+              Start-Sleep -Seconds 2
+              & $ts up --authkey=$env:TS_AUTHKEY --hostname="master-1"
+            }
+            Get-Service -Name TermService -ErrorAction SilentlyContinue | Where-Object { $_.Status -ne "Running" } | ForEach-Object {
+              Write-Output ">> restarting TermService"
+              Start-Service -Name $_.Name -ErrorAction SilentlyContinue
+            }
+          }
+
+      - name: Leave tailscale
+        if: always()
+        shell: pwsh
+        run: |
+          & "C:\Program Files\Tailscale\tailscale.exe" down
+          Write-Output "tailscale down"
+
+  # =========================================================================
+  #  STREAMERS: one job per concurrent live stream. Each downloads its share
+  #  of the videos and pushes a seamless loop to YouTube for ~6 hours.
+  # =========================================================================
+  streamer:
+    needs: prepare
+    name: stream-${{ matrix.index }}
+    runs-on: windows-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        index: ${{ fromJSON(needs.prepare.outputs.streams) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Join Tailscale (stable hostname)
+        shell: pwsh
+        env:
+          TS_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          Invoke-WebRequest "https://pkgs.tailscale.com/stable/tailscale-setup-latest-amd64.msi" -OutFile ts.msi
+          Start-Process msiexec -ArgumentList "/i","$PWD\ts.msi","/qn","/norestart" -Wait
+          $ts = "C:\Program Files\Tailscale\tailscale.exe"
+          & $ts up --authkey=$env:TS_AUTHKEY --hostname="stream-${{ matrix.index }}"
+          Start-Sleep -Seconds 6
+          $ip = (& $ts ip -4 | Select-Object -First 1).Trim()
+          Write-Output "stream-${{ matrix.index }} tailnet-ip=$ip"
+          Write-Output "" >> $env:GITHUB_STEP_SUMMARY
+          Write-Output "stream-${{ matrix.index }} -> $ip (will push 1 live stream)" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Disable firewall
+        shell: pwsh
+        run: |
+          Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False -ErrorAction SilentlyContinue
+          Write-Output "firewall disabled"
+
+      - name: Install ffmpeg + yt-dlp
+        shell: pwsh
+        run: |
+          choco install ffmpeg -y --no-progress
+          python -m pip install --quiet yt-dlp
+          ffmpeg -version | Select-Object -First 1
+          python -m yt_dlp --version
+
+      - name: Stream to YouTube (download + loop + self-heal)
+        shell: pwsh
+        env:
+          CHANNEL: ${{ inputs.channel_url }}
+          YT_STREAM_KEY: ${{ secrets.YT_STREAM_KEY }}
+          YT_URL: ${{ secrets.YT_STREAM_URL }}
+          YT_URL_BACKUP: ${{ secrets.YT_STREAM_URL_BACKUP }}
+        run: |
+          $ErrorActionPreference = "Continue"
+          if (-not $env:YT_STREAM_KEY) {
+            Write-Output "::error::YT_STREAM_KEY secret is MISSING. Create a live in YouTube Studio -> Go Live -> Stream, copy the stream key, add it as a repo secret YT_STREAM_KEY, then re-run."
+            exit 1
+          }
+          $primary = if ($env:YT_URL) { $env:YT_URL } else { "rtmp://a.rtmp.youtube.com/live2" }
+          $backup  = if ($env:YT_URL_BACKUP) { $env:YT_URL_BACKUP } else { "rtmp://b.rtmp.youtube.com/live2?backup=1" }
+          & powershell -ExecutionPolicy Bypass -File "stream\stream.ps1" `
+            -ChannelUrl "$env:CHANNEL" `
+            -Index ${{ matrix.index }} `
+            -Count ${{ inputs.stream_count }} `
+            -OutDir "$env:USERPROFILE\videos" `
+            -StreamKey "$env:YT_STREAM_KEY" `
+            -Rtmp $primary `
+            -RtmpBackup $backup
+
+      - name: Leave tailscale
+        if: always()
+        shell: pwsh
+        run: |
+          & "C:\Program Files\Tailscale\tailscale.exe" down
+          Write-Output "tailscale down"
