@@ -94,8 +94,9 @@ jobs:
           $cookiesFile = Join-Path $env:GITHUB_WORKSPACE "cookies.txt"
           $hasCookies = $false
           if (-not [string]::IsNullOrWhiteSpace($env:COOKIES)) {
-            [System.IO.File]::WriteAllText($cookiesFile, $env:COOKIES, [System.Text.Encoding]::UTF8)
-            Write-Output ">> YOUTUBE_COOKIES secret loaded into cookies.txt"
+            $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+            [System.IO.File]::WriteAllText($cookiesFile, $env:COOKIES.Trim(), $utf8NoBom)
+            Write-Output ">> YOUTUBE_COOKIES secret loaded into cookies.txt (No BOM)"
             $hasCookies = $true
           } else {
             Write-Output ">> No YOUTUBE_COOKIES secret found"
