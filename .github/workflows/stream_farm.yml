@@ -85,7 +85,7 @@ jobs:
           Write-Output ">> RDP address: master-1 (tailnet IP $ip)"
           Write-Output ">> user: trader    password: Test12345!"
           Write-Output "" >> $env:GITHUB_STEP_SUMMARY
-          Write-Output "**STREAM MASTER READY** - mstsc -> `master-1` | user `trader` | pass `Test12345!`" >> $env:GITHUB_STEP_SUMMARY
+          Write-Output "**STREAM MASTER READY** - mstsc -> master-1 | user trader | pass Test12345!" >> $env:GITHUB_STEP_SUMMARY
 
       - name: Enable RDP + admin user
         shell: pwsh
