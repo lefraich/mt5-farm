@@ -70,9 +70,11 @@ def build_playlist(ids, outdir, playlist_file):
     print("playlist ->", playlist_file, "(", len(lines), "entries )")
 
 
-def cmd_agent(channel_url, index, count, outdir):
+def cmd_agent(channel_url, index, count, outdir, limit=0):
     ids = get_videos(channel_url)
     subset = ids[index::count]
+    if limit and limit > 0:
+        subset = subset[:limit]
     print("videos found:", len(ids), "| my subset (newest first):", len(subset))
     download(subset, outdir)
     build_playlist(subset, outdir, pathlib.Path(outdir) / "playlist.txt")
@@ -93,12 +95,13 @@ def main():
     a.add_argument("index", type=int)
     a.add_argument("count", type=int)
     a.add_argument("outdir")
+    a.add_argument("--limit", type=int, default=0)
     m = sub.add_parser("master")
     m.add_argument("channel_url")
     m.add_argument("outdir")
     args = ap.parse_args()
     if args.cmd == "agent":
-        cmd_agent(args.channel_url, args.index, args.count, args.outdir)
+        cmd_agent(args.channel_url, args.index, args.count, args.outdir, args.limit)
     else:
         cmd_master(args.channel_url, args.outdir)
 
