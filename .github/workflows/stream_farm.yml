@@ -84,17 +84,30 @@ jobs:
         env:
           CHANNEL: ${{ inputs.channel_id }}
           COUNT: ${{ inputs.video_count }}
+          COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
         run: |
           $ErrorActionPreference = "Stop"
           $yt = Join-Path $env:GITHUB_WORKSPACE "tools\yt-dlp.exe"
           $videos = "C:\videos"
           New-Item -ItemType Directory -Force -Path $videos | Out-Null
 
+          $cookiesFile = Join-Path $env:GITHUB_WORKSPACE "cookies.txt"
+          $hasCookies = $false
+          if (-not [string]::IsNullOrWhiteSpace($env:COOKIES)) {
+            [System.IO.File]::WriteAllText($cookiesFile, $env:COOKIES, [System.Text.Encoding]::UTF8)
+            Write-Output ">> YOUTUBE_COOKIES secret loaded into cookies.txt"
+            $hasCookies = $true
+          } else {
+            Write-Output ">> No YOUTUBE_COOKIES secret found"
+          }
+
           $count = [int]$env:COUNT
           $ch = "https://www.youtube.com/channel/$env:CHANNEL/videos"
 
           Write-Output ">> Fetching video list from channel $env:CHANNEL..."
-          $raw = @(& $yt --flat-playlist -J --no-warnings $ch) -join "`n"
+          $listArgs = @("--flat-playlist", "-J", "--no-warnings")
+          if ($hasCookies) { $listArgs += @("--cookies", $cookiesFile) }
+          $raw = @(& $yt $listArgs $ch) -join "`n"
           $d = $raw | ConvertFrom-Json
           $entries = @($d.entries)
           if ($count -gt 0) { $entries = @($entries | Select-Object -First $count) }
@@ -106,10 +119,9 @@ jobs:
             $i++
             $url = "https://www.youtube.com/watch?v=$($e.id)"
             Write-Output "  $i/$($entries.Count) [$($e.id)] $($e.title)"
-            & $yt -f "18/22/17/best" `
-              --no-warnings --no-progress `
-              -o "$videos\%(id)s.%(ext)s" `
-              $url
+            $dlArgs = @("-f", "18/22/17/best", "--no-warnings", "--no-progress", "-o", "$videos\%(id)s.%(ext)s")
+            if ($hasCookies) { $dlArgs += @("--cookies", $cookiesFile) }
+            & $yt $dlArgs $url
           }
 
           $got = Get-ChildItem $videos -File -ErrorAction SilentlyContinue
