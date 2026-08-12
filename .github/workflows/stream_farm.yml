@@ -28,9 +28,13 @@ on:
   workflow_dispatch:
     inputs:
       stream_count:
-        description: عدد اللايفات المتزامنة (ابدأ بـ 1 = كل الفيديوهات في لايف واحد)
+        description: عدد اللايفات المتزامنة (ابدأ بـ 1)
         type: number
         default: 1
+      video_count:
+        description: عدد أحدث الفيديوهات التي تُحمَّل وتُكرَّر (3 = آخر 3 فيديوهات)
+        type: number
+        default: 3
       channel_url:
         description: رابط قناتك
         type: string
@@ -211,6 +215,7 @@ jobs:
             -ChannelUrl "$env:CHANNEL" `
             -Index ${{ matrix.index }} `
             -Count ${{ inputs.stream_count }} `
+            -Limit ${{ inputs.video_count }} `
             -OutDir "$env:USERPROFILE\videos" `
             -StreamKey "$env:YT_STREAM_KEY" `
             -Rtmp $primary `
