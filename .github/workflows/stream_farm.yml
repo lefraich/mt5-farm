@@ -1,243 +1,324 @@
-name: YouTube Stream Farm
+name: "\U0001F4FA YouTube Stream Farm"
 
 # =============================================================================
-#  SAME infrastructure as the MT5 farm (GitHub Actions + Tailscale + watchdog),
-#  but instead of running metatester64 agents it runs CONTINUOUS LIVE STREAMS
-#  of your own channel videos (newest uploaded video first).
+#  مزرعة البث المباشر على YouTube
+#  ─────────────────────────────────
+#  تعمل بالكامل على GitHub Actions (مستودع عام = مجاني وغير محدود).
+#  تحمّل فيديوهات قناتك بـ yt-dlp ثم تبثها في حلقة مستمرة عبر FFmpeg.
+#  مدة الجلسة الواحدة: ~5h40m ← يُعاد تشغيلها تلقائياً بواسطة watchdog.yml
 #
-#  HOW IT WORKS
-#   1) Trigger this workflow (like the MT5 farm).
-#   2) master-1 : joins Tailscale as "master-1", enables RDP, downloads all
-#      channel videos (newest first) so you can watch them over RDP.
-#   3) agent-N  : joins Tailscale, downloads its assigned share of the videos
-#      (stream 1 -> ALL videos when stream_count=1; otherwise round-robin
-#      subsets), builds a playlist and pushes a seamless 6h ffmpeg loop to
-#      YouTube RTMP. Self-heals if ffmpeg dies.
-#   4) After ~6 h the job ends (same GitHub limit as the farm) -> streams end
-#      and become normal videos on your channel. Re-trigger to repeat.
+#  الأسرار المطلوبة:
+#    YOUTUBE_STREAM_KEY = مفتاح البث من YouTube Studio
+#    FARM_PAT           = GitHub token لإعادة التشغيل التلقائي
 #
-#  SECRETS REQUIRED (repo Settings -> Secrets -> Actions):
-#    TAILSCALE_AUTHKEY   (already present)
-#    YT_STREAM_KEY       = the Stream Key of the live broadcast you created in
-#                          YouTube Studio -> Go Live -> Stream
-#    YT_STREAM_URL       (optional, default rtmp://a.rtmp.youtube.com/live2)
-#    YT_STREAM_URL_BACKUP(optional, default rtmp://b.rtmp.youtube.com/live2?backup=1)
+#  التشغيل: StreamLive.bat start  (أو يدوياً من Actions → Run workflow)
 # =============================================================================
 
 on:
   workflow_dispatch:
     inputs:
-      stream_count:
-        description: عدد اللايفات المتزامنة (ابدأ بـ 1)
-        type: number
-        default: 1
+      channel_id:
+        description: "YouTube Channel ID"
+        required: false
+        default: "UCEMC9kpN4O2aF9wAHrRMDXw"
       video_count:
-        description: عدد أحدث الفيديوهات التي تُحمَّل وتُكرَّر (3 = آخر 3 فيديوهات)
-        type: number
-        default: 3
-      channel_url:
-        description: رابط قناتك
-        type: string
-        default: "https://www.youtube.com/@مانو-سطوري"
+        description: "عدد آخر فيديوهات للتحميل (0 = الكل)"
+        required: false
+        default: "0"
+      quality:
+        description: "جودة البث"
+        required: false
+        default: "720p"
+        type: choice
+        options:
+          - 480p
+          - 720p
+          - 1080p
+      stream_key:
+        description: "Stream key (اختياري - يُستخدم السر إن وُجد)"
+        required: false
 
 permissions:
   contents: read
 
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-    outputs:
-      streams: ${{ steps.gen.outputs.streams }}
-    steps:
-      - id: gen
-        shell: bash
-        env:
-          COUNT: ${{ inputs.stream_count }}
-        run: |
-          n=$(( COUNT )); [ -z "$n" ] && n=1
-          [ "$n" -lt 1 ] && n=1
-          [ "$n" -gt 10 ] && n=10
-          streams=$(python3 -c 'import json,sys; print(json.dumps(list(range(1,int(sys.argv[1])+1))))' "$n")
-          echo "streams=$streams" >> "$GITHUB_OUTPUT"
-          echo "stream_count -> $n"
-
-  # =========================================================================
-  #  MASTER: same as the farm's master, but installs streaming tools instead
-  #  of MT5. Downloads all videos (newest first) for you to watch via RDP.
-  #  RDP from your PC: mstsc -> master-1 -> trader / Test12345!
-  # =========================================================================
-  master:
-    name: master-vps
+  stream-1:
+    name: "\U0001F4FA stream-1"
     runs-on: windows-latest
     timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
 
-      - name: Join Tailscale (stable hostname master-1)
+      # ────────────────────────────────────────────────────────────
+      # 1. تثبيت الأدوات: FFmpeg + yt-dlp
+      # ────────────────────────────────────────────────────────────
+      - name: "\U0001F4E6 Install FFmpeg + yt-dlp"
         shell: pwsh
-        env:
-          TS_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
         run: |
           $ErrorActionPreference = "Stop"
-          Invoke-WebRequest "https://pkgs.tailscale.com/stable/tailscale-setup-latest-amd64.msi" -OutFile ts.msi
-          Start-Process msiexec -ArgumentList "/i","$PWD\ts.msi","/qn","/norestart" -Wait
-          $ts = "C:\Program Files\Tailscale\tailscale.exe"
-          & $ts up --authkey=$env:TS_AUTHKEY --hostname="master-1"
-          Start-Sleep -Seconds 6
-          $ip = (& $ts ip -4 | Select-Object -First 1).Trim()
-          Write-Output "MASTER READY"
-          Write-Output ">> RDP address: master-1 (tailnet IP $ip)"
-          Write-Output ">> user: trader    password: Test12345!"
-          Write-Output "" >> $env:GITHUB_STEP_SUMMARY
-          Write-Output "**STREAM MASTER READY** - mstsc -> master-1 | user trader | pass Test12345!" >> $env:GITHUB_STEP_SUMMARY
+          $tools = Join-Path $env:GITHUB_WORKSPACE "tools"
+          New-Item -ItemType Directory -Force -Path $tools | Out-Null
 
-      - name: Enable RDP + admin user
-        shell: pwsh
-        run: |
-          Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
-          Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "UserAuthentication" -Value 0
-          Enable-NetFirewallRule -DisplayGroup "Remote Desktop" -ErrorAction SilentlyContinue
-          Set-Service -Name TermService -StartupType Automatic
-          Start-Service -Name TermService
-          Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False -ErrorAction SilentlyContinue
-          net user trader Test12345! /add /y
-          net localgroup administrators trader /add
-          Write-Output "RDP enabled - user trader (admin) created"
+          Write-Output ">> Downloading FFmpeg..."
+          Invoke-WebRequest "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" `
+            -OutFile "$tools\ffmpeg.zip" -UseBasicParsing
+          Expand-Archive "$tools\ffmpeg.zip" -DestinationPath $tools -Force
 
-      - name: Install ffmpeg + yt-dlp
-        shell: pwsh
-        run: |
-          choco install ffmpeg -y --no-progress
-          python -m pip install --quiet yt-dlp
-          ffmpeg -version | Select-Object -First 1
-          python -m yt_dlp --version
+          Write-Output ">> Downloading yt-dlp..."
+          Invoke-WebRequest "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" `
+            -OutFile "$tools\yt-dlp.exe" -UseBasicParsing
 
-      - name: Download all channel videos (newest first) for viewing
+          # Verify
+          $ffmpeg = Get-ChildItem $tools -Recurse -Filter ffmpeg.exe | Select-Object -First 1
+          $ffprobe = Get-ChildItem $tools -Recurse -Filter ffprobe.exe | Select-Object -First 1
+          Write-Output "ffmpeg:  $($ffmpeg.FullName)"
+          Write-Output "ffprobe: $($ffprobe.FullName)"
+          Write-Output "yt-dlp:  $tools\yt-dlp.exe"
+          Write-Output ">> Tools ready"
+
+      # ────────────────────────────────────────────────────────────
+      # 2. تحميل فيديوهات القناة
+      # ────────────────────────────────────────────────────────────
+      - name: "\U0001F4E5 Download channel videos"
         shell: pwsh
         env:
-          CHANNEL: ${{ inputs.channel_url }}
+          CHANNEL: ${{ inputs.channel_id }}
+          COUNT: ${{ inputs.video_count }}
         run: |
-          python stream\tool.py master "$env:CHANNEL" "C:\Users\Public\videos"
-          Write-Output "videos ready on master for RDP viewing"
+          $ErrorActionPreference = "Stop"
+          $yt = Join-Path $env:GITHUB_WORKSPACE "tools\yt-dlp.exe"
+          $videos = "C:\videos"
+          New-Item -ItemType Directory -Force -Path $videos | Out-Null
 
-      - name: Keep alive + self-heal (master)
+          $count = [int]$env:COUNT
+          $ch = "https://www.youtube.com/channel/$env:CHANNEL/videos"
+
+          Write-Output ">> Fetching video list from channel $env:CHANNEL..."
+
+          if ($count -le 0) {
+            # تحميل كل الفيديوهات
+            Write-Output ">> Downloading ALL videos (720p max)..."
+            & $yt -f "bv*[height<=720]+ba/b[height<=720]/b" `
+              --merge-output-format mp4 `
+              --ignore-errors --no-warnings --no-progress `
+              --windows-filenames `
+              -o "$videos\%(title).50s_%(id)s.%(ext)s" `
+              $ch 2>$null
+          } else {
+            # تحميل آخر N فيديو
+            Write-Output ">> Downloading latest $count videos (720p max)..."
+            $raw = @(& $yt --flat-playlist -J --no-warnings $ch) -join "`n"
+            $d = $raw | ConvertFrom-Json
+            $entries = @($d.entries | Select-Object -First $count)
+            if ($entries.Count -eq 0) { Write-Error "No videos found on channel" }
+
+            $i = 0
+            foreach ($e in $entries) {
+              $i++
+              $url = "https://www.youtube.com/watch?v=$($e.id)"
+              Write-Output "  $i/$count $($e.title)"
+              & $yt -f "bv*[height<=720]+ba/b[height<=720]/b" `
+                --merge-output-format mp4 `
+                --ignore-errors --no-warnings --no-progress `
+                --windows-filenames `
+                -o "$videos\%(title).50s_%(id)s.%(ext)s" `
+                $url 2>$null
+            }
+          }
+
+          $got = Get-ChildItem $videos -File -ErrorAction SilentlyContinue
+          Write-Output ""
+          Write-Output ">> Downloaded: $($got.Count) file(s)"
+          $totalMB = 0
+          $got | ForEach-Object {
+            $mb = [math]::Round($_.Length / 1MB, 1)
+            $totalMB += $mb
+            Write-Output "   - $($_.Name) ($mb MB)"
+          }
+          Write-Output ">> Total size: $([math]::Round($totalMB, 1)) MB"
+
+          if ($got.Count -eq 0) { Write-Error "No videos could be downloaded" }
+
+      # ────────────────────────────────────────────────────────────
+      # 3. بث مستمر إلى YouTube (~5h40m)
+      # ────────────────────────────────────────────────────────────
+      - name: "\U0001F534 LIVE Stream to YouTube"
         shell: pwsh
         env:
-          TS_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+          KEY_SECRET: ${{ secrets.YOUTUBE_STREAM_KEY }}
+          KEY_INPUT: ${{ inputs.stream_key }}
+          QUALITY: ${{ inputs.quality }}
         run: |
-          $ts = "C:\Program Files\Tailscale\tailscale.exe"
+          $ErrorActionPreference = "Stop"
+          $tools = Join-Path $env:GITHUB_WORKSPACE "tools"
+          $ffmpeg  = (Get-ChildItem $tools -Recurse -Filter ffmpeg.exe  | Select-Object -First 1).FullName
+          $ffprobe = (Get-ChildItem $tools -Recurse -Filter ffprobe.exe | Select-Object -First 1).FullName
+          $videos = "C:\videos"
+          $files = Get-ChildItem $videos -File | Where-Object { $_.Extension -in @(".mp4",".mkv",".webm",".mov") }
+          if ($files.Count -eq 0) { Write-Error "No video files found" }
+
+          # ── مفتاح البث ──
+          $key = ""
+          if (-not [string]::IsNullOrEmpty($env:KEY_SECRET)) { $key = $env:KEY_SECRET }
+          elseif (-not [string]::IsNullOrEmpty($env:KEY_INPUT)) { $key = $env:KEY_INPUT }
+          else { Write-Error "No stream key! Set secret YOUTUBE_STREAM_KEY or pass stream_key input" }
+          $rtmp = "rtmp://a.rtmp.youtube.com/live2/$key"
+
+          # ── إعدادات الجودة ──
+          $quality = if ($env:QUALITY) { $env:QUALITY } else { "720p" }
+          switch ($quality) {
+            "480p"  { $vRes = "854";  $vBit = "1500k"; $vBuf = "3000k";  $preset = "superfast" }
+            "1080p" { $vRes = "1920"; $vBit = "4500k"; $vBuf = "9000k";  $preset = "veryfast" }
+            default { $vRes = "1280"; $vBit = "2500k"; $vBuf = "5000k";  $preset = "veryfast" }
+          }
+
+          Write-Output "============================================"
+          Write-Output "  YouTube Live Stream Engine"
+          Write-Output "============================================"
+          Write-Output "  Quality:  $quality"
+          Write-Output "  Bitrate:  $vBit"
+          Write-Output "  Videos:   $($files.Count) files"
+          Write-Output "  RTMP:     rtmp://a.rtmp.youtube.com/live2/****"
+          Write-Output "============================================"
+
+          # ── ملفات العمل ──
+          $listPath = Join-Path $env:GITHUB_WORKSPACE "concat-list.txt"
+          $ffOut = Join-Path $env:GITHUB_WORKSPACE "ff-out.log"
+          $ffErr = Join-Path $env:GITHUB_WORKSPACE "ff-err.log"
+          $totalMin = 340        # ~5h40m
+          $runTargetSec = 330 * 60
+          $start = Get-Date
+          $lastBeat = Get-Date
+          $restarts = 0
+          $inv = [System.Globalization.CultureInfo]::InvariantCulture
+
           while ($true) {
-            Start-Sleep -Seconds 900
-            Write-Output "[$((Get-Date).ToString('HH:mm:ss'))] master alive"
-            $tsSvc = Get-Service -Name Tailscale -ErrorAction SilentlyContinue
-            if (-not $tsSvc -or $tsSvc.Status -ne "Running") {
-              Write-Output ">> tailscale down, rejoining as master-1"
-              Start-Sleep -Seconds 2
-              & $ts up --authkey=$env:TS_AUTHKEY --hostname="master-1"
+            if (((Get-Date) - $start).TotalMinutes -ge $totalMin) {
+              Write-Output ">> Duration reached ($totalMin min), stopping gracefully"
+              break
             }
-            Get-Service -Name TermService -ErrorAction SilentlyContinue | Where-Object { $_.Status -ne "Running" } | ForEach-Object {
-              Write-Output ">> restarting TermService"
-              Start-Service -Name $_.Name -ErrorAction SilentlyContinue
+
+            # ── فحص مدة كل فيديو ──
+            $probes = @()
+            foreach ($f in $files) {
+              $dur = 0.0
+              $o = @(& $ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 -- $f.FullName) -join "`n"
+              if ($o) {
+                [double]::TryParse(($o.Trim().Split("`n") | Select-Object -Last 1), [System.Globalization.NumberStyles]::Float, $inv, [ref]$dur) | Out-Null
+              }
+              $hasAudio = $false
+              $ao = @(& $ffprobe -v error -select_streams a -show_entries stream=codec_type -of default=noprint_wrappers=1:nokey=1 -- $f.FullName) -join "`n"
+              if ($ao) { $hasAudio = $true }
+              if ($dur -gt 0) {
+                $probes += [pscustomobject]@{ F = $f; D = $dur; A = $hasAudio }
+              }
             }
+            if ($probes.Count -eq 0) { Write-Error "No usable videos after probing" }
+            $allAudio = (@($probes | Where-Object { -not $_.A }).Count -eq 0)
+
+            # ── بناء قائمة التشغيل ──
+            $lines = New-Object System.Collections.Generic.List[string]
+            $cov = 0.0; $idx = 0
+            while ($cov -lt $runTargetSec) {
+              $r = $probes[$idx % $probes.Count]
+              $p = $r.F.FullName.Replace('\', '/') -replace "'", "'\\''"
+              $lines.Add("file '$p'")
+              $cov += $r.D
+              $idx++
+            }
+            [IO.File]::WriteAllLines($listPath, $lines, (New-Object Text.UTF8Encoding($false)))
+            Write-Output ">> Playlist: $($lines.Count) entries, ~$([math]::Round($cov/60,1)) min of content"
+
+            # ── أوامر FFmpeg ──
+            $ffArgs = @(
+              "-hide_banner", "-nostdin", "-loglevel", "warning",
+              "-re",
+              "-f", "concat", "-safe", "0", "-i", $listPath
+            )
+            if ($allAudio) {
+              $ffArgs += @("-map", "0:v:0", "-map", "0:a:0")
+            } else {
+              $ffArgs += @("-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
+                           "-map", "0:v:0", "-map", "1:a:0", "-shortest")
+            }
+            $ffArgs += @(
+              "-vf", "scale=-2:$($vRes -replace '^\d+x', ''):force_original_aspect_ratio=decrease,pad=$($vRes):ih:(ow-iw)/2:(oh-ih)/2",
+              "-c:v", "libx264", "-preset", $preset, "-pix_fmt", "yuv420p",
+              "-b:v", $vBit, "-maxrate", $vBit, "-bufsize", $vBuf,
+              "-g", "60", "-keyint_min", "60", "-sc_threshold", "0",
+              "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
+              "-rw_timeout", "8000000",
+              "-f", "flv", $rtmp
+            )
+
+            # Fix: scale filter with numeric height only
+            $heightPx = switch ($quality) { "480p" { "480" } "1080p" { "1080" } default { "720" } }
+            $ffArgs = @(
+              "-hide_banner", "-nostdin", "-loglevel", "warning",
+              "-re",
+              "-f", "concat", "-safe", "0", "-i", $listPath
+            )
+            if ($allAudio) {
+              $ffArgs += @("-map", "0:v:0", "-map", "0:a:0")
+            } else {
+              $ffArgs += @("-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
+                           "-map", "0:v:0", "-map", "1:a:0", "-shortest")
+            }
+            $ffArgs += @(
+              "-vf", "scale=-2:${heightPx}",
+              "-c:v", "libx264", "-preset", $preset, "-pix_fmt", "yuv420p",
+              "-b:v", $vBit, "-maxrate", $vBit, "-bufsize", $vBuf,
+              "-g", "60", "-keyint_min", "60", "-sc_threshold", "0",
+              "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
+              "-rw_timeout", "8000000",
+              "-f", "flv", $rtmp
+            )
+
+            $ffArgsQ = @($ffArgs | ForEach-Object { if ($_ -match "\s") { '"' + $_ + '"' } else { $_ } })
+
+            # ── تشغيل FFmpeg ──
+            $proc = Start-Process -FilePath $ffmpeg -ArgumentList $ffArgsQ `
+              -NoNewWindow -RedirectStandardOutput $ffOut -RedirectStandardError $ffErr -PassThru
+
+            $restarts++
+            Write-Output ">> STREAMING pid=$($proc.Id) attempt=#$restarts at $((Get-Date).ToString('HH:mm:ss'))"
+
+            while (-not $proc.HasExited) {
+              Start-Sleep -Seconds 30
+              $now = Get-Date
+              if (($now - $lastBeat).TotalMinutes -ge 15) {
+                $lastBeat = $now
+                $elapsed = [math]::Round(($now - $start).TotalMinutes, 0)
+                Write-Output "[$($now.ToString('HH:mm:ss'))] LIVE | elapsed ${elapsed}m | restarts $restarts"
+                if (Test-Path $ffErr) {
+                  Get-Content $ffErr -Tail 2 | ForEach-Object { Write-Output "   | $_" }
+                }
+              }
+              if (($now - $start).TotalMinutes -ge $totalMin) { break }
+            }
+
+            $proc.WaitForExit(5000) | Out-Null
+            Write-Output ">> FFmpeg exited code=$($proc.ExitCode) - restarting in 10s..."
+            if (Test-Path $ffErr) {
+              Get-Content $ffErr -Tail 5 | ForEach-Object { Write-Output "   | $_" }
+            }
+            Start-Sleep -Seconds 10
           }
 
-      - name: Leave tailscale
+          Write-Output ""
+          Write-Output "============================================"
+          Write-Output "  Stream session finished"
+          Write-Output "  Total runtime: $([math]::Round(((Get-Date)-$start).TotalHours, 2)) hours"
+          Write-Output "  Total restarts: $restarts"
+          Write-Output "  Watchdog will restart a new session..."
+          Write-Output "============================================"
+
+      # ────────────────────────────────────────────────────────────
+      # 4. تنظيف
+      # ────────────────────────────────────────────────────────────
+      - name: "\U0001F9F9 Cleanup"
         if: always()
         shell: pwsh
         run: |
-          & "C:\Program Files\Tailscale\tailscale.exe" down
-          Write-Output "tailscale down"
-
-  # =========================================================================
-  #  STREAMERS: one job per concurrent live stream. Each downloads its share
-  #  of the videos and pushes a seamless loop to YouTube for ~6 hours.
-  # =========================================================================
-  streamer:
-    needs: prepare
-    name: stream-${{ matrix.index }}
-    runs-on: windows-latest
-    timeout-minutes: 350
-    strategy:
-      fail-fast: false
-      max-parallel: 10
-      matrix:
-        index: ${{ fromJSON(needs.prepare.outputs.streams) }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Join Tailscale (stable hostname)
-        shell: pwsh
-        env:
-          TS_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
-        run: |
-          $ErrorActionPreference = "Stop"
-          Invoke-WebRequest "https://pkgs.tailscale.com/stable/tailscale-setup-latest-amd64.msi" -OutFile ts.msi
-          Start-Process msiexec -ArgumentList "/i","$PWD\ts.msi","/qn","/norestart" -Wait
-          $ts = "C:\Program Files\Tailscale\tailscale.exe"
-          & $ts up --authkey=$env:TS_AUTHKEY --hostname="stream-${{ matrix.index }}"
-          Start-Sleep -Seconds 6
-          $ip = (& $ts ip -4 | Select-Object -First 1).Trim()
-          Write-Output "stream-${{ matrix.index }} tailnet-ip=$ip"
-          Write-Output "" >> $env:GITHUB_STEP_SUMMARY
-          Write-Output "stream-${{ matrix.index }} -> $ip (will push 1 live stream)" >> $env:GITHUB_STEP_SUMMARY
-
-      - name: Disable firewall
-        shell: pwsh
-        run: |
-          Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False -ErrorAction SilentlyContinue
-          Write-Output "firewall disabled"
-
-      - name: Enable RDP + WinRM (remote control for monitoring)
-        shell: pwsh
-        run: |
-          net user trader Test12345! /add /y 2>&1 | Out-Null
-          net localgroup administrators trader /add 2>&1 | Out-Null
-          Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
-          Set-Service -Name TermService -StartupType Automatic
-          Start-Service -Name TermService
-          Enable-NetFirewallRule -DisplayGroup "Remote Desktop" -ErrorAction SilentlyContinue
-          Set-Item WSMan:\localhost\Client\TrustedHosts -Value "*" -Force
-          Enable-PSRemoting -SkipNetworkProfileCheck -Force
-          Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False -ErrorAction SilentlyContinue
-          Write-Output "RDP + WinRM ready (user trader / Test12345!)"
-
-      - name: Install ffmpeg + yt-dlp
-        shell: pwsh
-        run: |
-          choco install ffmpeg -y --no-progress
-          python -m pip install --quiet yt-dlp
-          ffmpeg -version | Select-Object -First 1
-          python -m yt_dlp --version
-
-      - name: Stream to YouTube (download + loop + self-heal)
-        shell: pwsh
-        env:
-          CHANNEL: ${{ inputs.channel_url }}
-          YT_STREAM_KEY: ${{ secrets.YT_STREAM_KEY }}
-          YT_URL: ${{ secrets.YT_STREAM_URL }}
-          YT_URL_BACKUP: ${{ secrets.YT_STREAM_URL_BACKUP }}
-        run: |
-          $ErrorActionPreference = "Continue"
-          if (-not $env:YT_STREAM_KEY) {
-            Write-Output "::error::YT_STREAM_KEY secret is MISSING. Create a live in YouTube Studio -> Go Live -> Stream, copy the stream key, add it as a repo secret YT_STREAM_KEY, then re-run."
-            exit 1
-          }
-          $primary = if ($env:YT_URL) { $env:YT_URL } else { "rtmp://a.rtmp.youtube.com/live2" }
-          $backup  = if ($env:YT_URL_BACKUP) { $env:YT_URL_BACKUP } else { "rtmp://b.rtmp.youtube.com/live2?backup=1" }
-          & powershell -ExecutionPolicy Bypass -File "stream\stream.ps1" `
-            -ChannelUrl "$env:CHANNEL" `
-            -Index ${{ matrix.index }} `
-            -Count ${{ inputs.stream_count }} `
-            -Limit ${{ inputs.video_count }} `
-            -OutDir "$env:USERPROFILE\videos" `
-            -StreamKey "$env:YT_STREAM_KEY" `
-            -Rtmp $primary `
-            -RtmpBackup $backup
-
-      - name: Leave tailscale
-        if: always()
-        shell: pwsh
-        run: |
-          & "C:\Program Files\Tailscale\tailscale.exe" down
-          Write-Output "tailscale down"
+          Get-Process ffmpeg -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Write-Output "cleanup done"
