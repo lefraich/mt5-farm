@@ -99,7 +99,8 @@ jobs:
             # تحميل كل الفيديوهات
             Write-Output ">> Downloading ALL videos..."
             & $yt -f "b/best/mp4" `
-              --no-warnings --no-progress `
+              --extractor-args "youtube:player_client=ios,mweb,android" `
+              --ignore-errors --no-warnings --no-progress `
               --windows-filenames `
               -o "$videos\%(title).30s_%(id)s.%(ext)s" `
               $ch
@@ -117,7 +118,8 @@ jobs:
               $url = "https://www.youtube.com/watch?v=$($e.id)"
               Write-Output "  $i/$count $($e.title)"
               & $yt -f "b/best/mp4" `
-                --no-warnings --no-progress `
+                --extractor-args "youtube:player_client=ios,mweb,android" `
+                --ignore-errors --no-warnings --no-progress `
                 --windows-filenames `
                 -o "$videos\%(title).30s_%(id)s.%(ext)s" `
                 $url
