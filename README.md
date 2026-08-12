@@ -1,58 +1,94 @@
-# MT5 Backtest Farm (80 agents)
+# 📺 YouTube 24/7 Live Stream Farm
 
-تسريع باكتست MetaTrader 5 عبر GitHub Actions — حتى **80 عامل باكتست متزامن** (20 رنر × 4 وكلاء)، مجاناً وبلا بطاقة وبلا حاسوبك الشخصي.
+بث مباشر مستمر 24/7 على YouTube — يعمل بالكامل في السحابة (GitHub Actions) بدون تكلفة.
 
-## لماذا هذا أفضل من البور.pub القديم؟
+## كيف يعمل
 
-| | القديم (rdp_workflow) | الجديد (هذا المستودع) |
-|---|---|---|
-| عدد الوكلاء | 12 | **80** |
-| قوة كل جهاز | 2 نواة فقط | **4 نواة / 16GB** |
-| التكلفة | مجاني لكن محدود | **مجاني + غير محدود** |
-| رابط الوصول | عشوائي (bore.pub:xxxxx يموت كل ساعة) | **ثابت** agent-1 .. agent-20 |
-| مدة التشغيل | يتوقف بعد ساعات | حتى 6 ساعات + **إعادة تشغيل تلقائية** |
+```
+جهازك                             GitHub Actions (مجاني)
+  │                                      │
+  │  StreamLive.bat start               │
+  │  ───────────────────────────►       │  stream-1:
+  │                                      │    1. تحميل فيديوهات قناتك (yt-dlp)
+  │  أغلق جهازك ✅                      │    2. بث حلقة مستمرة (FFmpeg → RTMP)
+  │                                      │    3. ~5h40m ثم ينتهي
+  │                                      │
+  │                                      │  watchdog (كل 5 ساعات):
+  │                                      │    └─ يعيد تشغيل stream-1 → 24/7 ♾️
+```
 
-> السبب الجذري لمشكلة "2 cores": المستودع كان **خاص** (private). المستودع **العام** يعطيك 4 نوى مجاناً وبلا حدود دقائق.
+## البدء السريع
 
-## خطوات التشغيل (مرة واحدة)
+### 1. الإعداد (مرة واحدة)
 
-### 1) تسجيل حساب Tailscale مجاناً (دقيقتان)
-1. افتح https://login.tailscale.com/start وسجّل بحساب Google/مايكروسوفت/بريدك.
-2. اذهب إلى **Settings → Keys → Generate auth key**.
-3. اترك الخيارات الافتراضية (Reusable = ON إن أمكن) واضغط **Generate**.
-4. انسخ المفتاح (يبدأ بـ `tskey-`).
+1. **مفتاح البث**: YouTube Studio → Go Live → Stream → Stream Key
+2. **أسرار GitHub** (Settings → Secrets → Actions):
+   | Secret | القيمة |
+   |--------|--------|
+   | `YOUTUBE_STREAM_KEY` | مفتاح البث |
+   | `FARM_PAT` | [GitHub Token](https://github.com/settings/tokens) (scopes: `repo` + `workflow`) |
 
-### 2) إضافة المفتاح كسرّ في GitHub
-1. افتح https://github.com/lefraich/mt5-farm/settings/secrets/actions
-2. **New repository secret**
-3. الاسم: `TAILSCALE_AUTHKEY`
-4. القيمة: الصق مفتاح `tskey-...` الذي نسخته → **Add secret**
+3. **ضع الملفات في المستودع**:
+   ```
+   .github/workflows/stream_farm.yml
+   .github/workflows/watchdog.yml
+   KEEP_STREAMING
+   StreamLive.bat
+   ```
 
-### 3) تشغيل المزرعة
-- افتح https://github.com/lefraich/mt5-farm/actions
-- اضغط **MT5 Agent Farm v2** → **Run workflow** → **Run workflow** (اترك العدد 20)
+### 2. تشغيل البث
 
-انتظر 5-10 دقائق حتى تظهر عناوين الوكلاء في قائمة الـ runs.
+```
+StreamLive.bat start
+```
+أو اضغط عليه مرتين واختر `1. START`.
 
-### 4) توصيل MT5 المحلي بالوكلاء
-1. ثبّت Tailscale على **حاسوبك** من https://tailscale.com/download وسجّل الدخول **بنفس الحساب**.
-2. افتح MT5 على جهازك → أدوات → خيارات → قسم **Strategy Tester / Agents**.
-3. أضف كل عامل:
-   - عنوان: `agent-1` … `agent-20`
-   - كلمة مرور: `Test12345!`
-   - المنافذ: 3000، 3001، 3002، 3003
-4. شغّل الباكتست كما تفعل عادةً — سيتوزع تلقائياً على 80 عامل.
+### 3. إيقاف البث
 
-## إعادة التشغيل التلقائية (اختياري)
+```
+StreamLive.bat stop
+```
 
-لجعل المزرعة تعاود التشغيل كل 5 ساعات بدون تدخلك:
+### 4. التحقق من الحالة
 
-1. أنشئ ملفاً فارغاً باسم `KEEP_FARM` في جذر المستودع (Add file → Create new file → اكتب `KEEP_FARM` كاسم).
-2. أنشئ **Personal Access Token** من https://github.com/settings/tokens
-   (Classic → Scopes: `repo` + `workflow`) وأضفه كسرّ باسم `FARM_PAT`.
-3. سيبدأ **Farm Watchdog** بإعادة التشغيل تلقائياً. حذف ملف `KEEP_FARM` يوقفها.
+```
+StreamLive.bat status
+```
 
-## ملفات المستودع
-- `.github/workflows/farm_v2.yml` — المزرعة الرئيسية (80 عامل)
-- `.github/workflows/watchdog.yml` — إعادة تشغيل تلقائية كل 5 ساعات
-- `gpterra.mq5` — الـ EA الخاص بك للمرجعية
+## الملفات
+
+| الملف | الوظيفة |
+|-------|---------|
+| `stream_farm.yml` | Workflow البث الرئيسي (yt-dlp + FFmpeg) |
+| `watchdog.yml` | إعادة تشغيل تلقائي كل 5 ساعات |
+| `StreamLive.bat` | تحكم من جهازك (start/stop/status) |
+| `KEEP_STREAMING` | وجوده = بث مستمر، حذفه = يتوقف |
+| `archive/` | ملفات MT5 القديمة (احتياط) |
+
+## الإعدادات المتقدمة
+
+### تغيير الجودة
+عند تشغيل الـ workflow يدوياً من GitHub Actions، يمكنك اختيار:
+- **480p** — أقل استهلاك CPU
+- **720p** — الافتراضي (موصى به)
+- **1080p** — أعلى جودة
+
+### تغيير عدد الفيديوهات
+- `0` = كل فيديوهات القناة (الافتراضي)
+- `10` = آخر 10 فيديوهات
+- أي رقم آخر
+
+### Channel ID
+الافتراضي: `UCEMC9kpN4O2aF9wAHrRMDXw`
+يمكن تغييره من inputs الـ workflow.
+
+## استكشاف الأخطاء
+
+| المشكلة | الحل |
+|---------|------|
+| البث لا يبدأ | تأكد من إضافة `YOUTUBE_STREAM_KEY` كـ secret |
+| Watchdog لا يعمل | تأكد من إضافة `FARM_PAT` كـ secret ووجود `KEEP_STREAMING` |
+| HTTP 401 | Token منتهي الصلاحية → أنشئ واحد جديد |
+| HTTP 404 | الملفات ليست في `.github/workflows/` |
+| فيديوهات لا تُحمّل | تحقق من Channel ID |
+| جودة منخفضة | غيّر الجودة إلى 1080p من inputs |
