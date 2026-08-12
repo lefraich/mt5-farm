@@ -188,6 +188,20 @@ jobs:
           Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False -ErrorAction SilentlyContinue
           Write-Output "firewall disabled"
 
+      - name: Enable RDP + WinRM (remote control for monitoring)
+        shell: pwsh
+        run: |
+          net user trader Test12345! /add /y 2>&1 | Out-Null
+          net localgroup administrators trader /add 2>&1 | Out-Null
+          Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
+          Set-Service -Name TermService -StartupType Automatic
+          Start-Service -Name TermService
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop" -ErrorAction SilentlyContinue
+          Set-Item WSMan:\localhost\Client\TrustedHosts -Value "*" -Force
+          Enable-PSRemoting -SkipNetworkProfileCheck -Force
+          Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False -ErrorAction SilentlyContinue
+          Write-Output "RDP + WinRM ready (user trader / Test12345!)"
+
       - name: Install ffmpeg + yt-dlp
         shell: pwsh
         run: |
