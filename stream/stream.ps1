@@ -9,6 +9,7 @@ param(
   [string]$ChannelUrl,
   [int]$Index = 1,
   [int]$Count = 1,
+  [int]$Limit = 0,
   [string]$OutDir = "$env:USERPROFILE\videos",
   [string]$StreamKey = "",
   [string]$Rtmp = "rtmp://a.rtmp.youtube.com/live2",
@@ -19,8 +20,9 @@ $ErrorActionPreference = "Stop"
 if (-not $StreamKey) { throw "StreamKey is empty - cannot stream without it" }
 
 $tool = Join-Path $PWD "stream\tool.py"
-Write-Output "== downloading + building playlist (stream $Index/$Count) =="
-python $tool agent "$ChannelUrl" $Index $Count "$OutDir"
+$limitArg = if ($Limit -gt 0) { @("--limit", "$Limit") } else { @() }
+Write-Output "== downloading + building playlist (stream $Index/$Count, newest $Limit videos) =="
+python $tool agent "$ChannelUrl" $Index $Count "$OutDir" @limitArg
 if ($LASTEXITCODE -ne 0) { throw "tool.py failed with exit $LASTEXITCODE" }
 
 $playlist = Join-Path $OutDir "playlist.txt"
