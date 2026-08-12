@@ -97,16 +97,15 @@ jobs:
 
           if ($count -le 0) {
             # تحميل كل الفيديوهات
-            Write-Output ">> Downloading ALL videos (720p max)..."
-            & $yt -f "bv*[height<=720]+ba/b[height<=720]/b" `
-              --merge-output-format mp4 `
-              --ignore-errors --no-warnings --no-progress `
+            Write-Output ">> Downloading ALL videos..."
+            & $yt -f "b/best/mp4" `
+              --no-warnings --no-progress `
               --windows-filenames `
-              -o "$videos\%(title).50s_%(id)s.%(ext)s" `
-              $ch 2>$null
+              -o "$videos\%(title).30s_%(id)s.%(ext)s" `
+              $ch
           } else {
             # تحميل آخر N فيديو
-            Write-Output ">> Downloading latest $count videos (720p max)..."
+            Write-Output ">> Downloading latest $count videos..."
             $raw = @(& $yt --flat-playlist -J --no-warnings $ch) -join "`n"
             $d = $raw | ConvertFrom-Json
             $entries = @($d.entries | Select-Object -First $count)
@@ -117,12 +116,11 @@ jobs:
               $i++
               $url = "https://www.youtube.com/watch?v=$($e.id)"
               Write-Output "  $i/$count $($e.title)"
-              & $yt -f "bv*[height<=720]+ba/b[height<=720]/b" `
-                --merge-output-format mp4 `
-                --ignore-errors --no-warnings --no-progress `
+              & $yt -f "b/best/mp4" `
+                --no-warnings --no-progress `
                 --windows-filenames `
-                -o "$videos\%(title).50s_%(id)s.%(ext)s" `
-                $url 2>$null
+                -o "$videos\%(title).30s_%(id)s.%(ext)s" `
+                $url
             }
           }
 
