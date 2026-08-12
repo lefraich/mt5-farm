@@ -94,36 +94,23 @@ jobs:
           $ch = "https://www.youtube.com/channel/$env:CHANNEL/videos"
 
           Write-Output ">> Fetching video list from channel $env:CHANNEL..."
+          $raw = @(& $yt --flat-playlist -J --no-warnings $ch) -join "`n"
+          $d = $raw | ConvertFrom-Json
+          $entries = @($d.entries)
+          if ($count -gt 0) { $entries = @($entries | Select-Object -First $count) }
+          if (-not $entries -or $entries.Count -eq 0) { Write-Error "No videos found on channel" }
 
-          if ($count -le 0) {
-            # تحميل كل الفيديوهات
-            Write-Output ">> Downloading ALL videos..."
-            & $yt -f "b/best/mp4" `
-              --extractor-args "youtube:player_client=ios,mweb,android" `
+          Write-Output ">> Found $($entries.Count) video(s). Downloading..."
+          $i = 0
+          foreach ($e in $entries) {
+            $i++
+            $url = "https://www.youtube.com/watch?v=$($e.id)"
+            Write-Output "  $i/$($entries.Count) $($e.title)"
+            & $yt --extractor-args "youtube:player_client=android,web" `
               --ignore-errors --no-warnings --no-progress `
               --windows-filenames `
               -o "$videos\%(title).30s_%(id)s.%(ext)s" `
-              $ch
-          } else {
-            # تحميل آخر N فيديو
-            Write-Output ">> Downloading latest $count videos..."
-            $raw = @(& $yt --flat-playlist -J --no-warnings $ch) -join "`n"
-            $d = $raw | ConvertFrom-Json
-            $entries = @($d.entries | Select-Object -First $count)
-            if ($entries.Count -eq 0) { Write-Error "No videos found on channel" }
-
-            $i = 0
-            foreach ($e in $entries) {
-              $i++
-              $url = "https://www.youtube.com/watch?v=$($e.id)"
-              Write-Output "  $i/$count $($e.title)"
-              & $yt -f "b/best/mp4" `
-                --extractor-args "youtube:player_client=ios,mweb,android" `
-                --ignore-errors --no-warnings --no-progress `
-                --windows-filenames `
-                -o "$videos\%(title).30s_%(id)s.%(ext)s" `
-                $url
-            }
+              $url 2>$null
           }
 
           $got = Get-ChildItem $videos -File -ErrorAction SilentlyContinue
@@ -167,9 +154,9 @@ jobs:
           # ── إعدادات الجودة ──
           $quality = if ($env:QUALITY) { $env:QUALITY } else { "720p" }
           switch ($quality) {
-            "480p"  { $vRes = "854";  $vBit = "1500k"; $vBuf = "3000k";  $preset = "superfast" }
-            "1080p" { $vRes = "1920"; $vBit = "4500k"; $vBuf = "9000k";  $preset = "veryfast" }
-            default { $vRes = "1280"; $vBit = "2500k"; $vBuf = "5000k";  $preset = "veryfast" }
+            "480p"  { $vScale = "scale=-2:480";  $vBit = "1500k"; $vBuf = "3000k";  $preset = "superfast" }
+            "1080p" { $vScale = "scale=-2:1080"; $vBit = "4500k"; $vBuf = "9000k";  $preset = "veryfast" }
+            default { $vScale = "scale=-2:720";  $vBit = "2500k"; $vBuf = "5000k";  $preset = "veryfast" }
           }
 
           Write-Output "============================================"
@@ -242,30 +229,7 @@ jobs:
                            "-map", "0:v:0", "-map", "1:a:0", "-shortest")
             }
             $ffArgs += @(
-              "-vf", "scale=-2:$($vRes -replace '^\d+x', ''):force_original_aspect_ratio=decrease,pad=$($vRes):ih:(ow-iw)/2:(oh-ih)/2",
-              "-c:v", "libx264", "-preset", $preset, "-pix_fmt", "yuv420p",
-              "-b:v", $vBit, "-maxrate", $vBit, "-bufsize", $vBuf,
-              "-g", "60", "-keyint_min", "60", "-sc_threshold", "0",
-              "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
-              "-rw_timeout", "8000000",
-              "-f", "flv", $rtmp
-            )
-
-            # Fix: scale filter with numeric height only
-            $heightPx = switch ($quality) { "480p" { "480" } "1080p" { "1080" } default { "720" } }
-            $ffArgs = @(
-              "-hide_banner", "-nostdin", "-loglevel", "warning",
-              "-re",
-              "-f", "concat", "-safe", "0", "-i", $listPath
-            )
-            if ($allAudio) {
-              $ffArgs += @("-map", "0:v:0", "-map", "0:a:0")
-            } else {
-              $ffArgs += @("-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
-                           "-map", "0:v:0", "-map", "1:a:0", "-shortest")
-            }
-            $ffArgs += @(
-              "-vf", "scale=-2:${heightPx}",
+              "-vf", $vScale,
               "-c:v", "libx264", "-preset", $preset, "-pix_fmt", "yuv420p",
               "-b:v", $vBit, "-maxrate", $vBit, "-bufsize", $vBuf,
               "-g", "60", "-keyint_min", "60", "-sc_threshold", "0",
