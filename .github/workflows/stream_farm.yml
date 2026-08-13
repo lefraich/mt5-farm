@@ -77,52 +77,30 @@ jobs:
           Write-Output ">> Tools ready"
 
       # ────────────────────────────────────────────────────────────
-      # 2. تحميل فيديوهات القناة
+      # 2. تحميل الفيديوهات من GitHub Release
       # ────────────────────────────────────────────────────────────
-      - name: "\U0001F4E5 Download channel videos"
+      - name: "\U0001F4E5 Download videos from GitHub Release"
         shell: pwsh
         env:
-          CHANNEL: ${{ inputs.channel_id }}
-          COUNT: ${{ inputs.video_count }}
-          COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
+          GH_TOKEN: ${{ secrets.FARM_PAT }}
         run: |
           $ErrorActionPreference = "Stop"
-          $yt = Join-Path $env:GITHUB_WORKSPACE "tools\yt-dlp.exe"
           $videos = "C:\videos"
           New-Item -ItemType Directory -Force -Path $videos | Out-Null
 
-          $cookiesFile = Join-Path $env:GITHUB_WORKSPACE "cookies.txt"
-          $hasCookies = $false
-          if (-not [string]::IsNullOrWhiteSpace($env:COOKIES)) {
-            $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-            [System.IO.File]::WriteAllText($cookiesFile, $env:COOKIES.Trim(), $utf8NoBom)
-            Write-Output ">> YOUTUBE_COOKIES secret loaded into cookies.txt (No BOM)"
-            $hasCookies = $true
-          } else {
-            Write-Output ">> No YOUTUBE_COOKIES secret found"
-          }
+          Write-Output ">> Fetching release assets from 'stream-videos'..."
+          $release = gh release view stream-videos --repo lefraich/mt5-farm --json assets | ConvertFrom-Json
+          $assets = @($release.assets | Where-Object { $_.name -match '\.mp4$' })
 
-          $count = [int]$env:COUNT
-          $ch = "https://www.youtube.com/channel/$env:CHANNEL/videos"
+          if ($assets.Count -eq 0) { Write-Error "No video assets found in release" }
+          Write-Output ">> Found $($assets.Count) video(s) to download"
 
-          Write-Output ">> Fetching video list from channel $env:CHANNEL..."
-          $listArgs = @("--flat-playlist", "-J", "--no-warnings")
-          if ($hasCookies) { $listArgs += @("--cookies", $cookiesFile) }
-          $raw = @(& $yt $listArgs $ch) -join "`n"
-          $d = $raw | ConvertFrom-Json
-          $entries = @($d.entries)
-          if ($count -gt 0) { $entries = @($entries | Select-Object -First $count) }
-          if (-not $entries -or $entries.Count -eq 0) { Write-Error "No videos found on channel" }
-
-          Write-Output ">> Found $($entries.Count) video(s). Downloading..."
           $i = 0
-          foreach ($e in $entries) {
+          foreach ($a in $assets) {
             $i++
-            $url = "https://www.youtube.com/watch?v=$($e.id)"
-            Write-Output "  $i/$($entries.Count) [$($e.id)] $($e.title)"
-            $dlArgs = @("-f", "18/22/17/best", "--no-warnings", "--no-progress", "-o", "$videos\%(id)s.%(ext)s")
-            if ($hasCookies) { $dlArgs += @("--cookies", $cookiesFile) }
-            & $yt $dlArgs $url
+            $dest = Join-Path $videos $a.name
+            Write-Output "  $i/$($assets.Count) Downloading $($a.name)..."
+            gh release download stream-videos --repo lefraich/mt5-farm --pattern $a.name --dir $videos --clobber
           }
 
           $got = Get-ChildItem $videos -File -ErrorAction SilentlyContinue
