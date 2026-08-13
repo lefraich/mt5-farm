@@ -3,28 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ronaldo vs Elon Musk - Real-Time Wealth Battle</title>
+  <title>Ronaldo vs Elon Musk - Live Wealth Battle</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@700;800&family=Outfit:wght@700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&family=Inter:wght@600;800;900&family=JetBrains+Mono:wght@700;800&family=Outfit:wght@800;900&display=swap" rel="stylesheet">
   
   <style>
     /* ==========================================
-       DESIGN SYSTEM & CORE TOKENS
+       RESET & 16:9 BROADCAST CANVAS SCOPING
        ========================================== */
-    :root {
-      --bg-dark: #030712;
-      --card-bg: rgba(17, 24, 39, 0.75);
-      --card-border: rgba(255, 255, 255, 0.1);
-      --neon-green: #10b981;
-      --neon-green-glow: rgba(16, 185, 129, 0.4);
-      --neon-cyan: #06b6d4;
-      --neon-cyan-glow: rgba(6, 182, 212, 0.4);
-      --neon-gold: #f59e0b;
-      --text-main: #f9fafb;
-      --text-muted: #9ca3af;
-    }
-
     * {
       box-sizing: border-box;
       margin: 0;
@@ -35,27 +22,27 @@
     html, body {
       width: 100vw;
       height: 100vh;
-      background: var(--bg-dark);
-      color: var(--text-main);
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #02050b;
+      color: #f9fafb;
+      font-family: 'Cairo', 'Inter', system-ui, sans-serif;
       overflow: hidden;
       display: flex;
       justify-content: center;
       align-items: center;
     }
 
-    /* 16:9 Broadcast Canvas Scoping (1920x1080) */
+    /* 16:9 Fixed Canvas (Target Resolution: 1920x1080 scaled) */
     .dashboard-container {
       width: 100vw;
-      height: 56.25vw; /* 16:9 Ratio */
+      height: 56.25vw; /* 16:9 aspect ratio */
       max-height: 100vh;
-      max-width: 177.78vh;
-      background: radial-gradient(circle at 50% 20%, #0f172a 0%, #030712 100%);
-      border: 2px solid rgba(6, 182, 212, 0.3);
-      box-shadow: 0 0 80px rgba(6, 182, 212, 0.15), inset 0 0 120px rgba(0, 0, 0, 0.9);
+      max-width: 177.78vh; /* 16:9 aspect ratio */
+      background: radial-gradient(circle at 50% 30%, #0c142c 0%, #02050b 100%);
+      border: 3px solid rgba(0, 240, 255, 0.4);
+      box-shadow: 0 0 80px rgba(0, 240, 255, 0.2), inset 0 0 120px rgba(0, 0, 0, 0.9);
       display: grid;
-      grid-template-rows: 75px 1fr 50px;
-      padding: 20px;
+      grid-template-rows: 85px 1fr 55px;
+      padding: 20px 24px;
       gap: 16px;
       position: relative;
     }
@@ -69,7 +56,7 @@
       background-size: 100% 4px, 6px 100%;
       pointer-events: none;
       z-index: 10;
-      opacity: 0.4;
+      opacity: 0.45;
     }
 
     /* ==========================================
@@ -79,152 +66,148 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: rgba(15, 23, 42, 0.85);
+      background: rgba(10, 16, 35, 0.85);
       backdrop-filter: blur(16px);
-      border: 1px solid var(--card-border);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 14px;
       padding: 0 24px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
     }
 
     .brand-title {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 15px;
     }
 
     .live-pulse {
-      width: 14px;
-      height: 14px;
-      background-color: #ef4444;
+      width: 16px;
+      height: 16px;
+      background-color: #ff0055;
       border-radius: 50%;
-      box-shadow: 0 0 15px #ef4444, 0 0 30px #ef4444;
+      box-shadow: 0 0 18px #ff0055, 0 0 35px #ff0055;
       animation: pulse-live 1.2s infinite ease-in-out;
     }
 
     @keyframes pulse-live {
       0% { transform: scale(0.9); opacity: 0.8; }
-      50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 25px #ef4444, 0 0 45px #ef4444; }
+      50% { transform: scale(1.35); opacity: 1; box-shadow: 0 0 25px #ff0055, 0 0 45px #ff0055; }
       100% { transform: scale(0.9); opacity: 0.8; }
     }
 
     .brand-title h1 {
-      font-family: 'Outfit', sans-serif;
-      font-size: 1.5rem;
+      font-family: 'Outfit', 'Cairo', sans-serif;
+      font-size: 1.6rem;
       font-weight: 900;
-      background: linear-gradient(90deg, #ffffff 0%, #38bdf8 100%);
+      background: linear-gradient(90deg, #ffffff 0%, #00f0ff 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       letter-spacing: 0.5px;
     }
 
     .brand-title span.tag {
-      background: rgba(239, 68, 68, 0.15);
-      border: 1px solid #ef4444;
-      color: #f87171;
-      font-size: 0.7rem;
-      padding: 2px 10px;
+      background: rgba(255, 0, 85, 0.2);
+      border: 1px solid #ff0055;
+      color: #ff3377;
+      font-size: 0.75rem;
+      padding: 3px 12px;
       border-radius: 20px;
-      font-weight: 700;
+      font-weight: 800;
       letter-spacing: 1px;
     }
 
     .verified-sources {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
 
     .source-badge {
       display: flex;
       align-items: center;
       gap: 6px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       padding: 5px 12px;
       border-radius: 8px;
       font-size: 0.75rem;
-      color: var(--text-muted);
-      font-weight: 600;
+      color: #cbd5e0;
+      font-weight: 700;
     }
 
     .source-badge span.dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: var(--neon-cyan);
-      box-shadow: 0 0 8px var(--neon-cyan);
+      background: #00f0ff;
+      box-shadow: 0 0 8px #00f0ff;
     }
 
     /* ==========================================
-       MAIN 2-COLUMN HERO LAYOUT
+       MAIN 2-COLUMN HERO LAYOUT (50% / 50%)
        ========================================== */
     .main-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      gap: 24px;
       height: 100%;
       overflow: hidden;
     }
 
-    /* GLASSMORPHISM HERO CARD */
-    .hero-card {
-      background: var(--card-bg);
+    /* HUGE HERO PERSON CARD */
+    .person-card {
+      background: rgba(10, 16, 35, 0.85);
       backdrop-filter: blur(20px);
-      border: 1px solid var(--card-border);
-      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 22px;
       padding: 24px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 22px;
+      align-items: center;
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.7);
       position: relative;
       overflow: hidden;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
     }
 
-    .hero-card.ronaldo-theme {
-      border-top: 4px solid var(--neon-green);
-      box-shadow: inset 0 0 40px rgba(16, 185, 129, 0.05), 0 20px 50px rgba(0, 0, 0, 0.6);
+    .person-card.ronaldo-theme {
+      border-right: 6px solid #00ff88;
+      box-shadow: -10px 0 40px rgba(0, 255, 136, 0.15);
     }
 
-    .hero-card.elon-theme {
-      border-top: 4px solid var(--neon-cyan);
-      box-shadow: inset 0 0 40px rgba(6, 182, 212, 0.05), 0 20px 50px rgba(0, 0, 0, 0.6);
+    .person-card.elon-theme {
+      border-left: 6px solid #00f0ff;
+      box-shadow: 10px 0 40px rgba(0, 240, 255, 0.15);
     }
 
-    /* Card Top Header (Avatar + Info) */
-    .card-profile-header {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-
-    .avatar-wrapper {
-      width: 110px;
-      height: 110px;
+    /* MASSIVE PORTRAIT FRAME */
+    .portrait-box {
+      width: 220px;
+      height: 280px;
       border-radius: 18px;
       overflow: hidden;
-      border: 3px solid rgba(255, 255, 255, 0.15);
-      flex-shrink: 0;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      border: 3px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7);
+      position: relative;
     }
 
-    .avatar-wrapper.green-glow { border-color: var(--neon-green); box-shadow: 0 0 20px var(--neon-green-glow); }
-    .avatar-wrapper.cyan-glow { border-color: var(--neon-cyan); box-shadow: 0 0 20px var(--neon-cyan-glow); }
+    .portrait-box.green-border { border-color: #00ff88; box-shadow: 0 0 25px rgba(0, 255, 136, 0.3); }
+    .portrait-box.cyan-border { border-color: #00f0ff; box-shadow: 0 0 25px rgba(0, 240, 255, 0.3); }
 
-    .avatar-wrapper img {
+    .portrait-box img {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      object-position: center top;
     }
 
-    .profile-info {
+    .person-details {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 14px;
     }
 
-    .profile-info h2 {
+    .person-name {
       font-size: 1.8rem;
       font-weight: 900;
       color: #ffffff;
@@ -234,48 +217,45 @@
     }
 
     .role-badge {
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       padding: 3px 10px;
       border-radius: 6px;
-      font-weight: 700;
+      font-weight: 800;
     }
 
-    .role-badge.green { background: rgba(16, 185, 129, 0.15); color: var(--neon-green); border: 1px solid var(--neon-green); }
-    .role-badge.cyan { background: rgba(6, 182, 212, 0.15); color: var(--neon-cyan); border: 1px solid var(--neon-cyan); }
+    .role-badge.green { background: rgba(0, 255, 136, 0.15); color: #00ff88; border: 1px solid #00ff88; }
+    .role-badge.cyan { background: rgba(0, 240, 255, 0.15); color: #00f0ff; border: 1px solid #00f0ff; }
 
     .profile-sub {
       font-size: 0.85rem;
-      color: var(--text-muted);
-      font-weight: 600;
+      color: #a0aec0;
+      font-weight: 700;
     }
 
     /* MASSIVE TODAY EARNINGS DISPLAY */
     .earnings-hero-box {
-      background: rgba(3, 7, 18, 0.6);
+      background: rgba(3, 6, 15, 0.75);
       border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
-      padding: 20px 24px;
+      border-radius: 14px;
+      padding: 16px 20px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
     }
 
     .earnings-lbl {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      font-weight: 700;
+      font-size: 0.8rem;
+      color: #a0aec0;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      letter-spacing: 0.5px;
     }
 
     .earnings-counter {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 2.8rem;
+      font-size: 2.5rem;
       font-weight: 800;
-      line-height: 1;
+      line-height: 1.1;
       letter-spacing: -0.5px;
     }
 
@@ -283,40 +263,40 @@
     .rates-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
+      gap: 10px;
     }
 
     .rate-card {
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 12px;
-      padding: 12px 16px;
+      border-radius: 10px;
+      padding: 10px 14px;
     }
 
     .rate-label {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      font-weight: 600;
+      font-size: 0.72rem;
+      color: #718096;
+      font-weight: 700;
       margin-bottom: 2px;
     }
 
     .rate-value {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 1.25rem;
+      font-size: 1.1rem;
       font-weight: 800;
     }
 
     /* Neon Text Utils */
-    .text-green { color: var(--neon-green); text-shadow: 0 0 15px var(--neon-green-glow); }
-    .text-cyan { color: var(--neon-cyan); text-shadow: 0 0 15px var(--neon-cyan-glow); }
-    .text-gold { color: var(--neon-gold); text-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+    .text-green { color: #00ff88; text-shadow: 0 0 15px rgba(0, 255, 136, 0.4); }
+    .text-cyan { color: #00f0ff; text-shadow: 0 0 15px rgba(0, 240, 255, 0.4); }
+    .text-gold { color: #ffd700; text-shadow: 0 0 15px rgba(255, 215, 0, 0.4); }
 
     /* ==========================================
        FOOTER TICKER BAR
        ========================================== */
     footer {
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid var(--card-border);
+      background: rgba(10, 16, 35, 0.95);
+      border: 1px solid rgba(0, 240, 255, 0.25);
       border-radius: 12px;
       display: flex;
       align-items: center;
@@ -326,15 +306,15 @@
     }
 
     .ticker-tag {
-      background: var(--neon-gold);
-      color: #030712;
+      background: #ffd700;
+      color: #03050a;
       font-weight: 900;
       font-size: 0.8rem;
       padding: 5px 14px;
       border-radius: 6px;
       white-space: nowrap;
       margin-left: 16px;
-      box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
       z-index: 5;
     }
 
@@ -342,7 +322,7 @@
       white-space: nowrap;
       font-size: 0.9rem;
       font-weight: 600;
-      color: #e5e7eb;
+      color: #cbd5e0;
       display: inline-block;
       animation: ticker-slide 32s linear infinite;
     }
@@ -361,7 +341,7 @@
     <header>
       <div class="brand-title">
         <div class="live-pulse"></div>
-        <h1>مقارنة الأرباح المباشرة | REAL-TIME WEALTH ENGINE</h1>
+        <h1>مقارنة الأرباح المباشرة | REAL-TIME WEALTH BATTLE</h1>
         <span class="tag">LIVE 24/7</span>
       </div>
 
@@ -372,78 +352,70 @@
       </div>
     </header>
 
-    <!-- MAIN 2-COLUMN GRID (50% / 50%) -->
+    <!-- MAIN 2-COLUMN HERO GRID (50% / 50%) -->
     <div class="main-grid">
 
-      <!-- LEFT CARD: CRISTIANO RONALDO ⚽ -->
-      <div class="hero-card ronaldo-theme">
+      <!-- LEFT: CRISTIANO RONALDO ⚽ -->
+      <div class="person-card ronaldo-theme">
         
-        <div class="card-profile-header">
-          <div class="avatar-wrapper green-glow">
-            <img src="ronaldo.jpg" alt="Cristiano Ronaldo">
-          </div>
-          <div class="profile-info">
-            <h2>
-              <span>كريستيانو رونالدو</span>
-              <span class="role-badge green">CR7</span>
-            </h2>
-            <div class="profile-sub">أعلى رياضي أجراً في العالم (النصر السعودي & Nike)</div>
-          </div>
+        <div class="portrait-box green-border">
+          <img src="ronaldo.jpg" alt="Cristiano Ronaldo">
         </div>
 
-        <div class="earnings-hero-box">
-          <div class="earnings-lbl">
-            <span>الأرباح المباشرة اليوم (Earnings Today)</span>
-            <span class="text-green">مباشر 🟢</span>
+        <div class="person-details">
+          <div class="person-name">
+            <span>كريستيانو رونالدو</span>
+            <span class="role-badge green">CR7</span>
           </div>
-          <div class="earnings-counter text-green" id="cr7-today">$0.00</div>
-        </div>
+          <div class="profile-sub">أعلى رياضي أجراً في العالم (Al-Nassr & Nike)</div>
 
-        <div class="rates-grid">
-          <div class="rate-card">
-            <div class="rate-label">الربح في الثانية</div>
-            <div class="rate-value text-green">+$9.50 / sec</div>
+          <div class="earnings-hero-box">
+            <div class="earnings-lbl">الأرباح اليوم المباشرة (Earnings Today)</div>
+            <div class="earnings-counter text-green" id="cr7-today">$0.00</div>
           </div>
-          <div class="rate-card">
-            <div class="rate-label">الربح في الدقيقة</div>
-            <div class="rate-value text-green">+$570.00 / min</div>
+
+          <div class="rates-grid">
+            <div class="rate-card">
+              <div class="rate-label">الربح في الثانية</div>
+              <div class="rate-value text-green">+$9.50 / sec</div>
+            </div>
+            <div class="rate-card">
+              <div class="rate-label">الربح في الدقيقة</div>
+              <div class="rate-value text-green">+$570.00 / min</div>
+            </div>
           </div>
         </div>
 
       </div>
 
-      <!-- RIGHT CARD: ELON MUSK 🚀 -->
-      <div class="hero-card elon-theme">
+      <!-- RIGHT: ELON MUSK 🚀 -->
+      <div class="person-card elon-theme">
         
-        <div class="card-profile-header">
-          <div class="avatar-wrapper cyan-glow">
-            <img src="elon.jpg" alt="Elon Musk">
-          </div>
-          <div class="profile-info">
-            <h2>
-              <span>إيلون ماسك</span>
-              <span class="role-badge cyan">TESLA / SPACEX</span>
-            </h2>
-            <div class="profile-sub">أغنى شخص في العالم (Tesla & SpaceX & X)</div>
-          </div>
+        <div class="portrait-box cyan-border">
+          <img src="elon.jpg" alt="Elon Musk">
         </div>
 
-        <div class="earnings-hero-box">
-          <div class="earnings-lbl">
-            <span>الأرباح المباشرة اليوم (Earnings Today)</span>
-            <span class="text-cyan">مباشر 🟢</span>
+        <div class="person-details">
+          <div class="person-name">
+            <span>إيلون ماسك</span>
+            <span class="role-badge cyan">TESLA / SPACEX</span>
           </div>
-          <div class="earnings-counter text-cyan" id="elon-today">$0.00</div>
-        </div>
+          <div class="profile-sub">أغنى شخص في العالم (Tesla & SpaceX & X)</div>
 
-        <div class="rates-grid">
-          <div class="rate-card">
-            <div class="rate-label">الربح في الثانية</div>
-            <div class="rate-value text-cyan">+$285.50 / sec</div>
+          <div class="earnings-hero-box">
+            <div class="earnings-lbl">الأرباح اليوم المباشرة (Earnings Today)</div>
+            <div class="earnings-counter text-cyan" id="elon-today">$0.00</div>
           </div>
-          <div class="rate-card">
-            <div class="rate-label">الربح في الدقيقة</div>
-            <div class="rate-value text-cyan">+$17,130 / min</div>
+
+          <div class="rates-grid">
+            <div class="rate-card">
+              <div class="rate-label">الربح في الثانية</div>
+              <div class="rate-value text-cyan">+$285.50 / sec</div>
+            </div>
+            <div class="rate-card">
+              <div class="rate-label">الربح في الدقيقة</div>
+              <div class="rate-value text-cyan">+$17,130 / min</div>
+            </div>
           </div>
         </div>
 
@@ -461,7 +433,7 @@
 
   </div>
 
-  <!-- REAL-TIME MATHEMATICS ENGINE (PURE UTC) -->
+  <!-- REAL-TIME WEALTH MATHEMATICS ENGINE (PURE UTC) -->
   <script>
     (function() {
       // PER-SECOND EARNING RATES
@@ -479,8 +451,10 @@
         // Seconds since midnight UTC today
         const secondsToday = (nowObj.getUTCHours() * 3600) + (nowObj.getUTCMinutes() * 60) + nowObj.getUTCSeconds() + (nowObj.getUTCMilliseconds() / 1000);
 
-        // Calculations
+        // CR7 Calculations
         const cr7TodayEarnings = secondsToday * CR7_RATE_SEC;
+
+        // Elon Calculations
         const elonTodayEarnings = secondsToday * ELON_RATE_SEC;
 
         // Update DOM
