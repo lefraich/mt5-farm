@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>World Live Demographics Dashboard - 16:9 Broadcast Edition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    /* ==========================================
+       RESET & 16:9 BROADCAST CANVAS SCOPING
+       ========================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      background-color: #03050a;
+      color: #f0f4f8;
+      font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* 16:9 Fixed Canvas (Target Resolution: 1920x1080 scaled) */
+    .dashboard-container {
+      width: 100vw;
+      height: 56.25vw; /* 16:9 aspect ratio */
+      max-height: 100vh;
+      max-width: 177.78vh; /* 16:9 aspect ratio */
+      background: radial-gradient(circle at 50% 30%, #0c142c 0%, #03050a 100%);
+      border: 2px solid rgba(0, 240, 255, 0.3);
+      box-shadow: 0 0 60px rgba(0, 240, 255, 0.15), inset 0 0 100px rgba(0, 0, 0, 0.85);
+      display: grid;
+      grid-template-rows: 85px 1fr 55px;
+      padding: 20px;
+      gap: 15px;
+      position: relative;
+    }
+
+    /* Grid layout scanning lines overlay */
+    .dashboard-container::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+      background-size: 100% 4px, 6px 100%;
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0.5;
+    }
+
+    /* ==========================================
+       HEADER: TITLES & VERIFIED SOURCES
+       ========================================== */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(12, 20, 42, 0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 14px;
+      padding: 0 25px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .live-pulse {
+      width: 16px;
+      height: 16px;
+      background-color: #ff0055;
+      border-radius: 50%;
+      box-shadow: 0 0 15px #ff0055, 0 0 30px #ff0055;
+      animation: pulse-live 1.2s infinite ease-in-out;
+    }
+
+    @keyframes pulse-live {
+      0% { transform: scale(0.9); opacity: 0.8; }
+      50% { transform: scale(1.35); opacity: 1; box-shadow: 0 0 25px #ff0055, 0 0 45px #ff0055; }
+      100% { transform: scale(0.9); opacity: 0.8; }
+    }
+
+    .brand-title h1 {
+      font-size: 1.6rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #ffffff 0%, #00f0ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+    }
+
+    .brand-title span.tag {
+      background: rgba(255, 0, 85, 0.2);
+      border: 1px solid #ff0055;
+      color: #ff3377;
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .verified-sources {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .source-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      color: #cbd5e0;
+      font-weight: 600;
+    }
+
+    .source-badge span.dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #00f0ff;
+      box-shadow: 0 0 8px #00f0ff;
+    }
+
+    /* ==========================================
+       MAIN GRID LAYOUT (3 COLUMNS)
+       ========================================== */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 340px 1fr 340px;
+      gap: 15px;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .panel {
+      background: rgba(10, 16, 35, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.5), transparent);
+    }
+
+    .panel-header {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #a0aec0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 8px;
+    }
+
+    /* ==========================================
+       CENTER HERO: WORLD TOTAL & MAP
+       ========================================== */
+    .center-hero {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      background: rgba(8, 14, 30, 0.85);
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      box-shadow: 0 0 40px rgba(0, 240, 255, 0.1);
+    }
+
+    .total-pop-box {
+      text-align: center;
+      margin-top: 5px;
+      z-index: 2;
+    }
+
+    .total-pop-label {
+      font-size: 1rem;
+      color: #cbd5e0;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+
+    .total-pop-counter {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 3.5rem;
+      font-weight: 800;
+      color: #ffffff;
+      text-shadow: 0 0 20px rgba(0, 240, 255, 0.7), 0 0 40px rgba(0, 240, 255, 0.4);
+      letter-spacing: 2px;
+      line-height: 1;
+    }
+
+    /* DETAILED SVG WORLD MAP GRAPHIC CONTAINER */
+    .world-map-container {
+      width: 100%;
+      flex-grow: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      margin-top: 2px;
+    }
+
+    .world-map-svg {
+      width: 98%;
+      height: 98%;
+      filter: drop-shadow(0 0 15px rgba(0, 240, 255, 0.25));
+    }
+
+    /* Map continent styling */
+    .map-land {
+      fill: rgba(0, 240, 255, 0.14);
+      stroke: rgba(0, 240, 255, 0.4);
+      stroke-width: 1;
+      transition: fill 0.3s ease;
+    }
+    .map-land:hover {
+      fill: rgba(0, 240, 255, 0.25);
+    }
+
+    /* Pulse Dots on Map */
+    .map-dot {
+      fill: #00f0ff;
+      animation: map-pulse 2s infinite ease-in-out;
+    }
+    .map-dot.birth { fill: #00ff88; animation: map-pulse 1.4s infinite ease-in-out; }
+    .map-dot.death { fill: #ff0055; animation: map-pulse 2.1s infinite ease-in-out; }
+
+    @keyframes map-pulse {
+      0% { r: 3.5; opacity: 0.4; }
+      50% { r: 9.5; opacity: 1; filter: drop-shadow(0 0 10px currentColor); }
+      100% { r: 3.5; opacity: 0.4; }
+    }
+
+    /* Connecting Arc Lines on Map */
+    .map-arc {
+      fill: none;
+      stroke: rgba(0, 240, 255, 0.35);
+      stroke-width: 1;
+      stroke-dasharray: 4, 4;
+      animation: dash 30s linear infinite;
+    }
+
+    @keyframes dash {
+      to { stroke-dashoffset: -100; }
+    }
+
+    /* Rates Summary Bar */
+    .rates-summary {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 12px;
+      padding: 10px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 2;
+    }
+
+    .rate-card {
+      text-align: center;
+    }
+
+    .rate-card .num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.15rem;
+      font-weight: 800;
+    }
+
+    .rate-card .lbl {
+      font-size: 0.7rem;
+      color: #a0aec0;
+      font-weight: 600;
+    }
+
+    .text-green { color: #00ff88; text-shadow: 0 0 10px rgba(0, 255, 136, 0.4); }
+    .text-red { color: #ff0055; text-shadow: 0 0 10px rgba(255, 0, 85, 0.4); }
+    .text-cyan { color: #00f0ff; text-shadow: 0 0 10px rgba(0, 240, 255, 0.4); }
+
+    /* ==========================================
+       SIDE STAT CARDS (BIRTHS & DEATHS)
+       ========================================== */
+    .stat-card {
+      background: rgba(15, 24, 50, 0.65);
+      border-radius: 12px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      position: relative;
+    }
+
+    .stat-card.birth-glow {
+      border-right: 4px solid #00ff88;
+      box-shadow: -5px 0 20px rgba(0, 255, 136, 0.08);
+    }
+
+    .stat-card.death-glow {
+      border-right: 4px solid #ff0055;
+      box-shadow: -5px 0 20px rgba(255, 0, 85, 0.08);
+    }
+
+    .stat-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #a0aec0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.7rem;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    .stat-sub {
+      font-size: 0.7rem;
+      color: #718096;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ==========================================
+       COUNTRY TOP LIST
+       ========================================== */
+    .country-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow-y: auto;
+      flex-grow: 1;
+    }
+
+    .country-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .country-flag-name {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .flag-icon {
+      font-size: 1.1rem;
+    }
+
+    .country-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #00f0ff;
+    }
+
+    /* ==========================================
+       FOOTER TICKER NEWS BAR
+       ========================================== */
+    footer {
+      background: rgba(8, 14, 30, 0.95);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      padding: 0 15px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .ticker-tag {
+      background: #00f0ff;
+      color: #03050a;
+      font-weight: 900;
+      font-size: 0.8rem;
+      padding: 5px 12px;
+      border-radius: 6px;
+      white-space: nowrap;
+      margin-left: 15px;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.5);
+      z-index: 5;
+    }
+
+    .ticker-content {
+      white-space: nowrap;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #cbd5e0;
+      display: inline-block;
+      animation: ticker-slide 32s linear infinite;
+    }
+
+    @keyframes ticker-slide {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard-container">
+    
+    <!-- HEADER -->
+    <header>
+      <div class="brand-title">
+        <div class="live-pulse"></div>
+        <h1>عداد سكان العالم المباشر</h1>
+        <span class="tag">LIVE 24/7</span>
+      </div>
+
+      <div class="verified-sources">
+        <div class="source-badge"><span class="dot"></span>الأمم المتحدة UN</div>
+        <div class="source-badge"><span class="dot"></span>منظمة الصحة العالمية WHO</div>
+        <div class="source-badge"><span class="dot"></span>مكتب الإحصاء الأمريكي US Census</div>
+        <div class="source-badge"><span class="dot"></span>البنك الدولي World Bank</div>
+      </div>
+    </header>
+
+    <!-- MAIN 3-COLUMN GRID -->
+    <div class="main-grid">
+
+      <!-- LEFT PANEL: BIRTHS & DEATHS TODAY -->
+      <div class="panel">
+        <div class="panel-header">
+          <span>إحصائيات اليوم</span>
+          <span style="color:#00ff88;">TODAY</span>
+        </div>
+
+        <div class="stat-card birth-glow">
+          <div class="stat-title">
+            <span>👶 المواليد اليوم</span>
+            <span class="text-green">+4.35/ثانية</span>
+          </div>
+          <div class="stat-value text-green" id="births-today">0</div>
+          <div class="stat-sub">
+            <span>منذ بداية اليوم</span>
+            <span>معدل حي</span>
+          </div>
+        </div>
+
+        <div class="stat-card death-glow">
+          <div class="stat-title">
+            <span>💀 الوفيات اليوم</span>
+            <span class="text-red">-2.06/ثانية</span>
+          </div>
+          <div class="stat-value text-red" id="deaths-today">0</div>
+          <div class="stat-sub">
+            <span>منذ بداية اليوم</span>
+            <span>معدل حي</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-title">
+            <span>📈 النمو الصافي اليوم</span>
+            <span class="text-cyan">+2.29/ثانية</span>
+          </div>
+          <div class="stat-value text-cyan" id="growth-today">0</div>
+          <div class="stat-sub">
+            <span>الفرق الصافي للزيادة</span>
+          </div>
+        </div>
+
+        <div class="stat-card" style="margin-top:auto;">
+          <div class="stat-title">
+            <span>🌐 المواليد هذا العام</span>
+          </div>
+          <div class="stat-value" style="font-size:1.3rem; color:#e2e8f0;" id="births-year">0</div>
+        </div>
+      </div>
+
+      <!-- CENTER PANEL: HERO WORLD TOTAL & MAP -->
+      <div class="panel center-hero">
+        
+        <div class="total-pop-box">
+          <div class="total-pop-label">إجمالي سكان كوكب الأرض الان</div>
+          <div class="total-pop-counter" id="world-pop">8,145,230,000</div>
+        </div>
+
+        <!-- ACCURATE DETAILED SVG WORLD MAP GRAPHIC -->
+        <div class="world-map-container">
+          <svg class="world-map-svg" viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
+            
+            <!-- Longitude / Latitude Grid Lines (Decorative Cyber Grid) -->
+            <g stroke="rgba(0, 240, 255, 0.06)" stroke-width="0.75" fill="none">
+              <line x1="0" y1="100" x2="1000" y2="100" />
+              <line x1="0" y1="200" x2="1000" y2="200" />
+              <line x1="0" y1="250" x2="1000" y2="250" stroke="rgba(0, 240, 255, 0.15)" stroke-dasharray="5,5" /> <!-- Equator -->
+              <line x1="0" y1="300" x2="1000" y2="300" />
+              <line x1="0" y1="400" x2="1000" y2="400" />
+              
+              <line x1="200" y1="0" x2="200" y2="500" />
+              <line x1="400" y1="0" x2="400" y2="500" />
+              <line x1="500" y1="0" x2="500" y2="500" stroke="rgba(0, 240, 255, 0.12)" /> <!-- Prime Meridian -->
+              <line x1="600" y1="0" x2="600" y2="500" />
+              <line x1="800" y1="0" x2="800" y2="500" />
+            </g>
+
+            <!-- DETAILED CONTINENTAL VECTOR PATHS -->
+            <g class="map-continents">
+              <!-- NORTH AMERICA & GREENLAND -->
+              <path class="map-land" d="M120,60 L160,50 L240,40 L300,55 L340,45 L360,70 L340,110 L270,115 L260,150 L290,170 L260,210 L230,225 L210,195 L180,180 L160,200 L130,170 L140,140 L90,110 Z M330,35 L390,25 L410,65 L360,85 Z"/>
+              
+              <!-- SOUTH AMERICA -->
+              <path class="map-land" d="M260,240 L310,230 L360,265 L390,320 L350,420 L310,460 L290,440 L290,350 L250,290 Z"/>
+              
+              <!-- EUROPE -->
+              <path class="map-land" d="M460,80 L520,70 L580,75 L610,105 L580,135 L530,130 L490,160 L460,140 L470,110 Z M460,110 L440,100 L450,85 Z"/>
+              
+              <!-- AFRICA -->
+              <path class="map-land" d="M460,170 L530,165 L590,200 L610,260 L570,360 L520,400 L470,360 L430,250 L440,200 Z M600,310 L620,310 L615,360 Z"/>
+              
+              <!-- ASIA & MIDDLE EAST -->
+              <path class="map-land" d="M590,75 L750,55 L880,70 L940,120 L910,180 L860,210 L810,240 L760,270 L740,230 L690,230 L670,190 L610,180 L590,140 Z M560,175 L600,180 L590,230 L550,220 Z"/>
+              
+              <!-- AUSTRALIA & INDONESIA -->
+              <path class="map-land" d="M770,320 L870,300 L910,350 L870,410 L790,400 L760,360 Z M730,260 L780,250 L840,270 L890,260 L830,285 Z"/>
+            </g>
+
+            <!-- INTER-CONTINENTAL ARCS (Data Flows) -->
+            <path class="map-arc" d="M260,150 Q460,50 710,200" />
+            <path class="map-arc" d="M500,240 Q600,100 770,330" />
+            <path class="map-arc" d="M310,290 Q450,200 710,200" />
+
+            <!-- LIVE PULSING NODES (MAJOR POPULATION & DEMOGRAPHIC HUBS) -->
+            <!-- India (New Delhi / Mumbai) -->
+            <circle cx="710" cy="200" class="map-dot birth" />
+            <!-- China (Beijing / Shanghai) -->
+            <circle cx="820" cy="160" class="map-dot birth" />
+            <!-- USA (East Coast / West Coast) -->
+            <circle cx="250" cy="140" class="map-dot" />
+            <circle cx="160" cy="130" class="map-dot" />
+            <!-- Nigeria / West Africa -->
+            <circle cx="490" cy="240" class="map-dot birth" />
+            <!-- Brazil (Sao Paulo) -->
+            <circle cx="340" cy="340" class="map-dot" />
+            <!-- Central Europe (London / Paris / Berlin) -->
+            <circle cx="490" cy="115" class="map-dot death" />
+            <!-- Indonesia (Jakarta) -->
+            <circle cx="820" cy="275" class="map-dot birth" />
+            <!-- Japan (Tokyo) -->
+            <circle cx="890" cy="150" class="map-dot death" />
+            <!-- Middle East (Cairo / Dubai) -->
+            <circle cx="560" cy="190" class="map-dot" />
+          </svg>
+        </div>
+
+        <!-- RATES SUMMARY BAR -->
+        <div class="rates-summary">
+          <div class="rate-card">
+            <div class="num text-green">+4.35 / sec</div>
+            <div class="lbl">معدل الولادات العالمي</div>
+          </div>
+          <div class="rate-card">
+            <div class="num text-red">-2.06 / sec</div>
+            <div class="lbl">معدل الوفيات العالمي</div>
+          </div>
+          <div class="rate-card">
+            <div class="num text-cyan">+2.29 / sec</div>
+            <div class="lbl">النمو السكاني الصافي</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT PANEL: TOP POPULATED COUNTRIES -->
+      <div class="panel">
+        <div class="panel-header">
+          <span>أكبر الدول سكاناً</span>
+          <span style="color:#00f0ff;">TOP 8</span>
+        </div>
+
+        <div class="country-list">
+          <div class="country-item">
+            <div class="country-flag-name">
+              <span class="flag-icon">🇮🇳</span>
+              <span>الهند</span>
+            </div>
+            <div class="country-val" id="pop-in">1,438,200,100</div>
+          </div>
+
+          <div class="country-item">
+            <div class="country-flag-name">
+              <span class="flag-icon">🇨🇳</span>
+              <span>الصين</span>
+            </div>
+            <div class="country-val" id="pop-cn">1,411,750,200</div>
+          </div>
+
+          <div class="country-item">
+            <div class="country-flag-name">
+              <span class="flag-icon">🇺🇸</span>
+              <span>الولايات المتحدة</span>
+            </div>
+            <div class="country-val" id="pop-us">340,120,400</div>
+          </div>
+
+          <div class="country-item">
+            <div class="country-flag-name">
+              <span class="flag-icon">🇮🇩</span>
+              <span>إندونيسيا</span>
+            </div>
+            <div class="country-val" id="pop-id">278,600,150</div>
+          </div>
+
+          <div class="country-item">
+            <div class="country-flag-name">
+              <span class="flag-icon">🇵🇰</span>
+              <span>باكستان</span>
+            </div>
+            <div class="country-val" id="pop-pk">241,500,800</div>
+          </div>
+
+          <div class="country-item">
+            <div class="country-flag-name">
+              <span class="flag-icon">🇳🇬</span>
+              <span>نيجيريا</span>
+            </div>
+            <div class="country-val" id="pop-ng">225,100,600</div>
+          </div>
+
+          <div class="country-item">
+            <div class="country-flag-name">
+              <span class="flag-icon">🇧🇷</span>
+              <span>البرازيل</span>
+            </div>
+            <div class="country-val" id="pop-br">216,400,300</div>
+          </div>
+
+          <div class="country-item">
+            <div class="country-flag-name">
+              <span class="flag-icon">🇧🇩</span>
+              <span>بنغلاديش</span>
+            </div>
+            <div class="country-val" id="pop-bd">173,200,900</div>
+          </div>
+        </div>
+
+        <div class="stat-card" style="margin-top:auto; background: rgba(0,240,255,0.05); border-color: rgba(0,240,255,0.2);">
+          <div class="stat-title" style="color:#00f0ff;">
+            <span>⚡ سرعة التغير الحالية</span>
+          </div>
+          <div style="font-size:0.8rem; color:#cbd5e0; line-height:1.4; margin-top:4px;">
+            تتم إضافة <strong style="color:#00ff88;">140 طفلاً</strong> جديداً كوكبيّاً كل دقيقة واحدة!
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- FOOTER NEWS TICKER -->
+    <footer>
+      <div class="ticker-tag">حقائق حية 💡</div>
+      <div class="ticker-content">
+        المصدر الرئيسي: الأمم المتحدة (UN DESA) وجمعية الصحة العالمية 🌍 • في كل ثانية يولد 4.35 طفل على كوكب الأرض 👶 • تتركز أكبر نسبة نمو سكاني حالياً في قارة إفريقيا وجنوب آسيا 📈 • ينمو سكان العالم بمعدل 80 مليون شخص سنوياً ⚡ • الهند تصدرت قائمة أكبر دول العالم سكاناً بفارق يتجاوز الصين 🇮🇳 •
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- REAL-TIME DEMOGRAPHIC ENGINE (PURE UTC MATHEMATICS) -->
+  <script>
+    (function() {
+      // BASELINE ANCHOR: UTC Timestamp for 2026-08-13 00:00:00 UTC
+      const BASELINE_TIMESTAMP = Date.UTC(2026, 7, 13, 0, 0, 0);
+
+      // BASELINE VALUES AT 2026-08-13 00:00:00 UTC
+      const BASE_WORLD_POP = 8145210000;
+      const BASE_BIRTHS_YEAR = 83450000;
+      
+      // PER-SECOND RATES
+      const RATE_BIRTH_SEC = 4.35;
+      const RATE_DEATH_SEC = 2.06;
+      const RATE_GROWTH_SEC = RATE_BIRTH_SEC - RATE_DEATH_SEC; // 2.29
+
+      // COUNTRY BASELINES & RATES (per second)
+      const COUNTRIES = {
+        in: { base: 1438200000, rate: 0.72 }, // India
+        cn: { base: 1411750000, rate: 0.12 }, // China
+        us: { base: 340120000,   rate: 0.08 }, // USA
+        id: { base: 278600000,   rate: 0.15 }, // Indonesia
+        pk: { base: 241500000,   rate: 0.22 }, // Pakistan
+        ng: { base: 225100000,   rate: 0.25 }, // Nigeria
+        br: { base: 216400000,   rate: 0.09 }, // Brazil
+        bd: { base: 173200000,   rate: 0.14 }  // Bangladesh
+      };
+
+      // Formatter for clean numbers
+      const formatNum = (num) => Math.floor(num).toLocaleString('en-US');
+
+      function updateMetrics() {
+        const now = Date.now();
+        
+        // Seconds since UTC midnight today
+        const nowObj = new Date();
+        const secondsToday = (nowObj.getUTCHours() * 3600) + (nowObj.getUTCMinutes() * 60) + nowObj.getUTCSeconds() + (nowObj.getUTCMilliseconds() / 1000);
+        
+        // Seconds since global baseline timestamp
+        const secondsBaseline = (now - BASELINE_TIMESTAMP) / 1000;
+
+        // Calculate Real-Time Values
+        const currentWorldPop = BASE_WORLD_POP + (secondsBaseline * RATE_GROWTH_SEC);
+        const birthsToday = secondsToday * RATE_BIRTH_SEC;
+        const deathsToday = secondsToday * RATE_DEATH_SEC;
+        const growthToday = secondsToday * RATE_GROWTH_SEC;
+        const birthsYear = BASE_BIRTHS_YEAR + (secondsBaseline * RATE_BIRTH_SEC);
+
+        // Update DOM elements
+        document.getElementById('world-pop').textContent = formatNum(currentWorldPop);
+        document.getElementById('births-today').textContent = formatNum(birthsToday);
+        document.getElementById('deaths-today').textContent = formatNum(deathsToday);
+        document.getElementById('growth-today').textContent = formatNum(growthToday);
+        document.getElementById('births-year').textContent = formatNum(birthsYear);
+
+        // Update Country Pop
+        for (const [code, data] of Object.entries(COUNTRIES)) {
+          const el = document.getElementById(`pop-${code}`);
+          if (el) {
+            el.textContent = formatNum(data.base + (secondsBaseline * data.rate));
+          }
+        }
+
+        requestAnimationFrame(updateMetrics);
+      }
+
+      // Start loop
+      requestAnimationFrame(updateMetrics);
+    })();
+  </script>
+
+</body>
+</html>
