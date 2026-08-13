@@ -66,12 +66,12 @@ jobs:
           KEY_INPUT: ${{ inputs.stream_key }}
           QUALITY: ${{ inputs.quality }}
         run: |
-          # Retrieve Stream Key
+          # Retrieve Stream Key (KEY_INPUT takes priority over KEY_SECRET)
           STREAM_KEY=""
-          if [ -n "$KEY_SECRET" ]; then
-            STREAM_KEY="$KEY_SECRET"
-          elif [ -n "$KEY_INPUT" ]; then
+          if [ -n "$KEY_INPUT" ]; then
             STREAM_KEY="$KEY_INPUT"
+          elif [ -n "$KEY_SECRET" ]; then
+            STREAM_KEY="$KEY_SECRET"
           else
             echo "::error::No stream key provided! Set secret WEALTH_STREAM_KEY or pass stream_key input"
             exit 1
