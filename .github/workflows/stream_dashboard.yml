@@ -84,10 +84,10 @@ jobs:
           export DISPLAY=:99
           sleep 3
 
-          # Launch Chrome Fullscreen with live_dashboard.html
+          # Launch Chrome Fullscreen with live_dashboard.html (Suppressing first-run popups)
           DASHBOARD_PATH="file://$GITHUB_WORKSPACE/live_dashboard.html"
           echo ">> Launching Chrome with $DASHBOARD_PATH..."
-          google-chrome --no-sandbox --disable-setuid-sandbox --kiosk --window-size=1920,1080 --window-position=0,0 --user-data-dir=/tmp/chrome-profile "$DASHBOARD_PATH" &
+          google-chrome --no-sandbox --disable-setuid-sandbox --no-first-run --no-default-browser-check --disable-features=Translate --disable-search-engine-choice-screen --kiosk --window-size=1920,1080 --window-position=0,0 --user-data-dir=/tmp/chrome-profile "$DASHBOARD_PATH" &
           sleep 5
 
           echo "============================================"
