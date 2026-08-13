@@ -2,15 +2,15 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ronaldo vs Elon Musk - Live Wealth Battle</title>
+  <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0">
+  <title>Ronaldo vs Elon Musk - Fixed 1080p Broadcast</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&family=Inter:wght@600;800;900&family=JetBrains+Mono:wght@700;800&family=Outfit:wght@800;900&display=swap" rel="stylesheet">
   
   <style>
     /* ==========================================
-       RESET & 16:9 BROADCAST CANVAS SCOPING
+       STRICT 1920x1080 PIXEL-PERFECT BROADCAST CANVAS
        ========================================== */
     * {
       box-sizing: border-box;
@@ -20,34 +20,29 @@
     }
 
     html, body {
-      width: 100vw;
-      height: 100vh;
+      width: 1920px;
+      height: 1080px;
       background: #02050b;
       color: #f9fafb;
       font-family: 'Cairo', 'Inter', system-ui, sans-serif;
       overflow: hidden;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    /* 16:9 Fixed Canvas (Target Resolution: 1920x1080 scaled) */
-    .dashboard-container {
-      width: 100vw;
-      height: 56.25vw; /* 16:9 aspect ratio */
-      max-height: 100vh;
-      max-width: 177.78vh; /* 16:9 aspect ratio */
-      background: radial-gradient(circle at 50% 30%, #0c142c 0%, #02050b 100%);
-      border: 3px solid rgba(0, 240, 255, 0.4);
-      box-shadow: 0 0 80px rgba(0, 240, 255, 0.2), inset 0 0 120px rgba(0, 0, 0, 0.9);
-      display: grid;
-      grid-template-rows: 85px 1fr 55px;
-      padding: 20px 24px;
-      gap: 16px;
       position: relative;
     }
 
-    /* Scanlines Grid FX */
+    .dashboard-container {
+      width: 1920px;
+      height: 1080px;
+      background: radial-gradient(circle at 50% 30%, #0c142c 0%, #02050b 100%);
+      border: 4px solid rgba(0, 240, 255, 0.4);
+      box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.9);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    /* Scanline grid overlay */
     .dashboard-container::before {
       content: "";
       position: absolute;
@@ -56,36 +51,38 @@
       background-size: 100% 4px, 6px 100%;
       pointer-events: none;
       z-index: 10;
-      opacity: 0.45;
+      opacity: 0.4;
     }
 
     /* ==========================================
-       HEADER BAR
+       HEADER BAR (Height: 85px)
        ========================================== */
     header {
+      width: 100%;
+      height: 85px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       background: rgba(10, 16, 35, 0.85);
       backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 14px;
-      padding: 0 24px;
+      border-radius: 16px;
+      padding: 0 30px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
     }
 
     .brand-title {
       display: flex;
       align-items: center;
-      gap: 15px;
+      gap: 16px;
     }
 
     .live-pulse {
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       background-color: #ff0055;
       border-radius: 50%;
-      box-shadow: 0 0 18px #ff0055, 0 0 35px #ff0055;
+      box-shadow: 0 0 20px #ff0055, 0 0 40px #ff0055;
       animation: pulse-live 1.2s infinite ease-in-out;
     }
 
@@ -97,7 +94,7 @@
 
     .brand-title h1 {
       font-family: 'Outfit', 'Cairo', sans-serif;
-      font-size: 1.6rem;
+      font-size: 1.8rem;
       font-weight: 900;
       background: linear-gradient(90deg, #ffffff 0%, #00f0ff 100%);
       -webkit-background-clip: text;
@@ -109,8 +106,8 @@
       background: rgba(255, 0, 85, 0.2);
       border: 1px solid #ff0055;
       color: #ff3377;
-      font-size: 0.75rem;
-      padding: 3px 12px;
+      font-size: 0.8rem;
+      padding: 4px 14px;
       border-radius: 20px;
       font-weight: 800;
       letter-spacing: 1px;
@@ -119,80 +116,81 @@
     .verified-sources {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
     }
 
     .source-badge {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.12);
-      padding: 5px 12px;
-      border-radius: 8px;
-      font-size: 0.75rem;
+      padding: 6px 14px;
+      border-radius: 10px;
+      font-size: 0.8rem;
       color: #cbd5e0;
       font-weight: 700;
     }
 
     .source-badge span.dot {
-      width: 6px;
-      height: 6px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
       background: #00f0ff;
-      box-shadow: 0 0 8px #00f0ff;
+      box-shadow: 0 0 10px #00f0ff;
     }
 
     /* ==========================================
-       MAIN 2-COLUMN HERO LAYOUT (50% / 50%)
+       MAIN 2-COLUMN HERO LAYOUT (Height: 820px)
        ========================================== */
     .main-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      width: 100%;
+      height: 820px;
+      display: flex;
+      justify-content: space-between;
       gap: 24px;
-      height: 100%;
-      overflow: hidden;
     }
 
-    /* HUGE HERO PERSON CARD */
+    /* EACH SIDE CARD IS EXACTLY 924px WIDE */
     .person-card {
+      width: 924px;
+      height: 100%;
       background: rgba(10, 16, 35, 0.85);
       backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 22px;
-      padding: 24px;
-      display: grid;
-      grid-template-columns: 220px 1fr;
-      gap: 22px;
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      border-radius: 24px;
+      padding: 30px;
+      display: flex;
+      flex-direction: row; /* FORCE HORIZONTAL SIDE-BY-SIDE INSIDE CARD */
       align-items: center;
-      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.7);
+      gap: 30px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
       position: relative;
-      overflow: hidden;
     }
 
     .person-card.ronaldo-theme {
-      border-right: 6px solid #00ff88;
-      box-shadow: -10px 0 40px rgba(0, 255, 136, 0.15);
+      border-right: 8px solid #00ff88;
+      box-shadow: -10px 0 50px rgba(0, 255, 136, 0.15);
     }
 
     .person-card.elon-theme {
-      border-left: 6px solid #00f0ff;
-      box-shadow: 10px 0 40px rgba(0, 240, 255, 0.15);
+      border-left: 8px solid #00f0ff;
+      box-shadow: 10px 0 50px rgba(0, 240, 255, 0.15);
     }
 
-    /* MASSIVE PORTRAIT FRAME */
+    /* MASSIVE FIXED PORTRAIT FRAME (320px x 420px) */
     .portrait-box {
-      width: 220px;
-      height: 280px;
-      border-radius: 18px;
+      width: 320px;
+      height: 440px;
+      border-radius: 20px;
       overflow: hidden;
-      border: 3px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7);
-      position: relative;
+      border: 4px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
+      flex-shrink: 0;
     }
 
-    .portrait-box.green-border { border-color: #00ff88; box-shadow: 0 0 25px rgba(0, 255, 136, 0.3); }
-    .portrait-box.cyan-border { border-color: #00f0ff; box-shadow: 0 0 25px rgba(0, 240, 255, 0.3); }
+    .portrait-box.green-border { border-color: #00ff88; box-shadow: 0 0 30px rgba(0, 255, 136, 0.35); }
+    .portrait-box.cyan-border { border-color: #00f0ff; box-shadow: 0 0 30px rgba(0, 240, 255, 0.35); }
 
     .portrait-box img {
       width: 100%;
@@ -202,49 +200,52 @@
     }
 
     .person-details {
+      flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      justify-content: center;
+      gap: 20px;
     }
 
     .person-name {
-      font-size: 1.8rem;
+      font-size: 2.2rem;
       font-weight: 900;
       color: #ffffff;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
+      white-space: nowrap;
     }
 
     .role-badge {
-      font-size: 0.8rem;
-      padding: 3px 10px;
-      border-radius: 6px;
+      font-size: 0.9rem;
+      padding: 4px 14px;
+      border-radius: 8px;
       font-weight: 800;
     }
 
-    .role-badge.green { background: rgba(0, 255, 136, 0.15); color: #00ff88; border: 1px solid #00ff88; }
-    .role-badge.cyan { background: rgba(0, 240, 255, 0.15); color: #00f0ff; border: 1px solid #00f0ff; }
+    .role-badge.green { background: rgba(0, 255, 136, 0.15); color: #00ff88; border: 1.5px solid #00ff88; }
+    .role-badge.cyan { background: rgba(0, 240, 255, 0.15); color: #00f0ff; border: 1.5px solid #00f0ff; }
 
     .profile-sub {
-      font-size: 0.85rem;
+      font-size: 1rem;
       color: #a0aec0;
       font-weight: 700;
     }
 
     /* MASSIVE TODAY EARNINGS DISPLAY */
     .earnings-hero-box {
-      background: rgba(3, 6, 15, 0.75);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 14px;
-      padding: 16px 20px;
+      background: rgba(3, 6, 15, 0.85);
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 24px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 8px;
     }
 
     .earnings-lbl {
-      font-size: 0.8rem;
+      font-size: 0.9rem;
       color: #a0aec0;
       font-weight: 800;
       text-transform: uppercase;
@@ -253,54 +254,57 @@
 
     .earnings-counter {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 2.5rem;
+      font-size: 3rem;
       font-weight: 800;
       line-height: 1.1;
       letter-spacing: -0.5px;
+      white-space: nowrap;
     }
 
     /* RATES GRID */
     .rates-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      display: flex;
+      gap: 16px;
     }
 
     .rate-card {
+      flex: 1;
       background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 10px;
-      padding: 10px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 14px 18px;
     }
 
     .rate-label {
-      font-size: 0.72rem;
+      font-size: 0.8rem;
       color: #718096;
       font-weight: 700;
-      margin-bottom: 2px;
+      margin-bottom: 4px;
     }
 
     .rate-value {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 1.1rem;
+      font-size: 1.3rem;
       font-weight: 800;
+      white-space: nowrap;
     }
 
     /* Neon Text Utils */
     .text-green { color: #00ff88; text-shadow: 0 0 15px rgba(0, 255, 136, 0.4); }
     .text-cyan { color: #00f0ff; text-shadow: 0 0 15px rgba(0, 240, 255, 0.4); }
-    .text-gold { color: #ffd700; text-shadow: 0 0 15px rgba(255, 215, 0, 0.4); }
 
     /* ==========================================
-       FOOTER TICKER BAR
+       FOOTER TICKER BAR (Height: 60px)
        ========================================== */
     footer {
+      width: 100%;
+      height: 60px;
       background: rgba(10, 16, 35, 0.95);
       border: 1px solid rgba(0, 240, 255, 0.25);
-      border-radius: 12px;
+      border-radius: 14px;
       display: flex;
       align-items: center;
-      padding: 0 16px;
+      padding: 0 20px;
       overflow: hidden;
       position: relative;
     }
@@ -309,19 +313,19 @@
       background: #ffd700;
       color: #03050a;
       font-weight: 900;
-      font-size: 0.8rem;
-      padding: 5px 14px;
-      border-radius: 6px;
+      font-size: 0.9rem;
+      padding: 6px 16px;
+      border-radius: 8px;
       white-space: nowrap;
-      margin-left: 16px;
-      box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+      margin-left: 20px;
+      box-shadow: 0 0 18px rgba(255, 215, 0, 0.5);
       z-index: 5;
     }
 
     .ticker-content {
       white-space: nowrap;
-      font-size: 0.9rem;
-      font-weight: 600;
+      font-size: 1rem;
+      font-weight: 700;
       color: #cbd5e0;
       display: inline-block;
       animation: ticker-slide 32s linear infinite;
