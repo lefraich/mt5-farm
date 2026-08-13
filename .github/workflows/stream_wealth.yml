@@ -27,12 +27,12 @@ jobs:
       - uses: actions/checkout@v4
 
       # ────────────────────────────────────────────────────────────
-      # 1. Install Tools (FFmpeg, Chrome, Xvfb, Fonts)
+      # 1. Install Tools (FFmpeg, Chrome, Xvfb, xdotool, Fonts)
       # ────────────────────────────────────────────────────────────
       - name: "📦 Install Environment Tools"
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg xvfb google-chrome-stable fonts-noto-core fonts-noto-extra fonts-jetbrains-mono
+          sudo apt-get install -y ffmpeg xvfb xdotool google-chrome-stable fonts-noto-core fonts-noto-extra
           echo ">> Environment tools ready"
 
       # ────────────────────────────────────────────────────────────
@@ -66,7 +66,7 @@ jobs:
           KEY_INPUT: ${{ inputs.stream_key }}
           QUALITY: ${{ inputs.quality }}
         run: |
-          # Retrieve Stream Key (KEY_INPUT takes priority over KEY_SECRET)
+          # ── Resolve Stream Key ──
           STREAM_KEY=""
           if [ -n "$KEY_INPUT" ]; then
             STREAM_KEY="$KEY_INPUT"
@@ -77,28 +77,81 @@ jobs:
             exit 1
           fi
 
-          # Use YouTube Backup Server URL to prevent primary ingestion collision
-          RTMP_URL="rtmp://b.rtmp.youtube.com/live2?backup=1/$STREAM_KEY"
+          # ── YouTube Backup RTMP Server (separate hostname = no collision) ──
+          RTMP_URL="rtmp://b.rtmp.youtube.com/live2/${STREAM_KEY}"
 
-          # Start Virtual X Display (1920x1080, 24bit)
-          Xvfb :99 -screen 0 1920x1080x24 &
+          # ── Start Xvfb (1920x1080 24-bit) ──
+          Xvfb :99 -screen 0 1920x1080x24 -ac +extension GLX +render -noreset &
           export DISPLAY=:99
           sleep 3
 
-          # Launch Chrome Fullscreen (Suppressing Translate & first-run popups)
-          DASHBOARD_PATH="file://$GITHUB_WORKSPACE/wealth_dashboard.html"
-          echo ">> Launching Chrome with $DASHBOARD_PATH..."
-          google-chrome --no-sandbox --disable-setuid-sandbox --no-first-run --no-default-browser-check --disable-features=Translate,TranslateUI,SearchEngineChoiceScreen --disable-translate --force-device-scale-factor=1 --kiosk --window-size=1920,1080 --window-position=0,0 --user-data-dir=/tmp/chrome-profile "$DASHBOARD_PATH" &
-          sleep 5
+          # ── Create Chrome profile with Translate DISABLED via Preferences file ──
+          CHROME_DIR="/tmp/chrome-wealth"
+          mkdir -p "$CHROME_DIR/Default"
+          cat > "$CHROME_DIR/Default/Preferences" << 'PREFS'
+          {
+            "translate": {"enabled": false},
+            "translate_blocked_languages": ["ar","en","fr","es","de","zh","ja","ko","ru","pt","it"],
+            "browser": {"has_seen_welcome_page": true, "check_default_browser": false},
+            "profile": {"default_content_setting_values": {"notifications": 2}},
+            "search": {"suggest_enabled": false}
+          }
+          PREFS
+          cat > "$CHROME_DIR/First Run" < /dev/null
+
+          echo ">> Chrome Preferences written to $CHROME_DIR"
+
+          # ── Launch Chrome in kiosk mode ──
+          DASHBOARD_URL="file://${GITHUB_WORKSPACE}/wealth_dashboard.html"
+          echo ">> Opening: $DASHBOARD_URL"
+
+          google-chrome \
+            --no-sandbox \
+            --disable-setuid-sandbox \
+            --no-first-run \
+            --no-default-browser-check \
+            --disable-translate \
+            --disable-features=Translate,TranslateUI,SearchEngineChoiceScreen,InfoBars,MediaRouter \
+            --disable-infobars \
+            --disable-notifications \
+            --disable-popup-blocking \
+            --disable-component-update \
+            --disable-background-networking \
+            --disable-sync \
+            --disable-extensions \
+            --force-device-scale-factor=1 \
+            --hide-scrollbars \
+            --kiosk \
+            --window-size=1920,1080 \
+            --window-position=0,0 \
+            --user-data-dir="$CHROME_DIR" \
+            "$DASHBOARD_URL" &
+
+          CHROME_PID=$!
+          sleep 6
+
+          # ── Force window to exact 1920x1080 via xdotool ──
+          WIN_ID=$(xdotool search --pid $CHROME_PID --name "" 2>/dev/null | head -n1 || true)
+          if [ -n "$WIN_ID" ]; then
+            xdotool windowactivate "$WIN_ID" 2>/dev/null || true
+            xdotool windowfocus "$WIN_ID" 2>/dev/null || true
+            xdotool windowsize "$WIN_ID" 1920 1080 2>/dev/null || true
+            xdotool windowmove "$WIN_ID" 0 0 2>/dev/null || true
+            echo ">> Chrome window forced to 1920x1080 at (0,0)"
+          else
+            echo ">> Warning: Could not find Chrome window via xdotool"
+          fi
+          sleep 2
 
           echo "============================================"
-          echo "  💰 Ronaldo vs Elon Musk Wealth Battle Stream"
+          echo "  💰 Ronaldo vs Elon Musk Wealth Battle"
           echo "============================================"
-          echo "  Target Resolution: 1920x1080"
-          echo "  RTMP: rtmp://a.rtmp.youtube.com/live2/****"
+          echo "  Resolution : 1920x1080"
+          echo "  RTMP Target: rtmp://b.rtmp.youtube.com/live2/****"
+          echo "  Chrome PID : $CHROME_PID"
           echo "============================================"
 
-          # FFmpeg X11 Screen Capture + Audio Loop -> RTMP
+          # ── FFmpeg: capture X11 screen + audio → RTMP ──
           ffmpeg -hide_banner -loglevel warning \
             -f x11grab -draw_mouse 0 -video_size 1920x1080 -framerate 30 -i :99.0 \
             -stream_loop -1 -i assets/music.mp3 \
