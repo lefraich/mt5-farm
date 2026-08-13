@@ -32,7 +32,7 @@ jobs:
       - name: "📦 Install Environment Tools"
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg xvfb google-chrome-stable fonts-cairo fonts-jetbrains-mono
+          sudo apt-get install -y ffmpeg xvfb google-chrome-stable fonts-noto-core fonts-noto-extra fonts-jetbrains-mono
           echo ">> Environment tools ready"
 
       # ────────────────────────────────────────────────────────────
