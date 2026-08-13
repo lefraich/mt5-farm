@@ -77,7 +77,8 @@ jobs:
             exit 1
           fi
 
-          RTMP_URL="rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
+          # Use YouTube Backup Server URL to prevent primary ingestion collision
+          RTMP_URL="rtmp://b.rtmp.youtube.com/live2?backup=1/$STREAM_KEY"
 
           # Start Virtual X Display (1920x1080, 24bit)
           Xvfb :99 -screen 0 1920x1080x24 &
