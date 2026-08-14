@@ -1,32 +1,14 @@
-name: "\U0001F4FA YouTube Stream Farm"
-
-# =============================================================================
-#  مزرعة البث المباشر على YouTube
-#  ─────────────────────────────────
-#  تعمل بالكامل على GitHub Actions (مستودع عام = مجاني وغير محدود).
-#  تحمّل فيديوهات قناتك بـ yt-dlp ثم تبثها في حلقة مستمرة عبر FFmpeg.
-#  مدة الجلسة الواحدة: ~5h40m ← يُعاد تشغيلها تلقائياً بواسطة watchdog.yml
-#
-#  الأسرار المطلوبة:
-#    YOUTUBE_STREAM_KEY = مفتاح البث من YouTube Studio
-#    FARM_PAT           = GitHub token لإعادة التشغيل التلقائي
-#
-#  التشغيل: StreamLive.bat start  (أو يدوياً من Actions → Run workflow)
-# =============================================================================
+name: "📺 YouTube Video Stream Farm (Google Drive Engine)"
 
 on:
   workflow_dispatch:
     inputs:
-      channel_id:
-        description: "YouTube Channel ID"
+      gdrive_url:
+        description: "Google Drive Folder or File URL"
         required: false
-        default: "UCEMC9kpN4O2aF9wAHrRMDXw"
-      video_count:
-        description: "عدد آخر فيديوهات للتحميل (0 = الكل)"
-        required: false
-        default: "0"
+        default: "https://drive.google.com/drive/folders/1rRDpSNWQuGHy6K41zIij5qwSlWftItEA"
       quality:
-        description: "جودة البث"
+        description: "Stream Quality"
         required: false
         default: "720p"
         type: choice
@@ -35,244 +17,139 @@ on:
           - 720p
           - 1080p
       stream_key:
-        description: "Stream key (اختياري - يُستخدم السر إن وُجد)"
+        description: "Stream Key (Optional - uses secret if empty)"
         required: false
 
 permissions:
   contents: read
 
 jobs:
-  stream-1:
-    name: "\U0001F4FA stream-1"
-    runs-on: windows-latest
+  video-stream:
+    name: "📺 Video Stream from Google Drive"
+    runs-on: ubuntu-latest
     timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
 
       # ────────────────────────────────────────────────────────────
-      # 1. تثبيت الأدوات: FFmpeg + yt-dlp
+      # 1. Install Environment Tools (FFmpeg, Python, gdown)
       # ────────────────────────────────────────────────────────────
-      - name: "\U0001F4E6 Install FFmpeg + yt-dlp"
-        shell: pwsh
+      - name: "📦 Install FFmpeg & gdown"
         run: |
-          $ErrorActionPreference = "Stop"
-          $tools = Join-Path $env:GITHUB_WORKSPACE "tools"
-          New-Item -ItemType Directory -Force -Path $tools | Out-Null
-
-          Write-Output ">> Downloading FFmpeg..."
-          Invoke-WebRequest "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" `
-            -OutFile "$tools\ffmpeg.zip" -UseBasicParsing
-          Expand-Archive "$tools\ffmpeg.zip" -DestinationPath $tools -Force
-
-          Write-Output ">> Downloading yt-dlp..."
-          Invoke-WebRequest "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" `
-            -OutFile "$tools\yt-dlp.exe" -UseBasicParsing
-
-          # Verify
-          $ffmpeg = Get-ChildItem $tools -Recurse -Filter ffmpeg.exe | Select-Object -First 1
-          $ffprobe = Get-ChildItem $tools -Recurse -Filter ffprobe.exe | Select-Object -First 1
-          Write-Output "ffmpeg:  $($ffmpeg.FullName)"
-          Write-Output "ffprobe: $($ffprobe.FullName)"
-          Write-Output "yt-dlp:  $tools\yt-dlp.exe"
-          Write-Output ">> Tools ready"
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg python3-pip
+          pip3 install --upgrade gdown --break-system-packages || pip3 install --upgrade gdown
+          echo ">> Environment tools ready"
 
       # ────────────────────────────────────────────────────────────
-      # 2. تحميل الفيديوهات من GitHub Release
+      # 2. Download Videos from Google Drive (Gigabit Speed)
       # ────────────────────────────────────────────────────────────
-      - name: "\U0001F4E5 Download videos from GitHub Release"
-        shell: pwsh
+      - name: "⚡ Fast Download from Google Drive"
         env:
-          GH_TOKEN: ${{ secrets.FARM_PAT }}
+          GDRIVE_URL: ${{ inputs.gdrive_url }}
         run: |
-          $ErrorActionPreference = "Stop"
-          $videos = "C:\videos"
-          New-Item -ItemType Directory -Force -Path $videos | Out-Null
-
-          Write-Output ">> Fetching release assets from 'stream-videos'..."
-          $release = gh release view stream-videos --repo lefraich/mt5-farm --json assets | ConvertFrom-Json
-          $assets = @($release.assets | Where-Object { $_.name -match '\.mp4$' })
-
-          if ($assets.Count -eq 0) { Write-Error "No video assets found in release" }
-          Write-Output ">> Found $($assets.Count) video(s) to download"
-
-          $i = 0
-          foreach ($a in $assets) {
-            $i++
-            $dest = Join-Path $videos $a.name
-            Write-Output "  $i/$($assets.Count) Downloading $($a.name)..."
-            gh release download stream-videos --repo lefraich/mt5-farm --pattern $a.name --dir $videos --clobber
-          }
-
-          $got = Get-ChildItem $videos -File -ErrorAction SilentlyContinue
-          Write-Output ""
-          Write-Output ">> Downloaded: $($got.Count) file(s)"
-          $totalMB = 0
-          $got | ForEach-Object {
-            $mb = [math]::Round($_.Length / 1MB, 1)
-            $totalMB += $mb
-            Write-Output "   - $($_.Name) ($mb MB)"
-          }
-          Write-Output ">> Total size: $([math]::Round($totalMB, 1)) MB"
-
-          if ($got.Count -eq 0) { Write-Error "No videos could be downloaded" }
+          mkdir -p "$GITHUB_WORKSPACE/videos"
+          cd "$GITHUB_WORKSPACE/videos"
+          
+          TARGET_URL="${GDRIVE_URL:-https://drive.google.com/drive/folders/1rRDpSNWQuGHy6K41zIij5qwSlWftItEA}"
+          echo ">> Downloading from Google Drive: $TARGET_URL"
+          
+          # Use gdown with remaining arguments
+          gdown --folder "$TARGET_URL" --remaining-ok || gdown "$TARGET_URL" || true
+          
+          # Move any nested videos to root videos dir
+          find "$GITHUB_WORKSPACE/videos" -mindepth 2 -type f -exec mv -t "$GITHUB_WORKSPACE/videos" {} + 2>/dev/null || true
+          
+          echo "============================================"
+          echo ">> Downloaded Video Files:"
+          ls -lh "$GITHUB_WORKSPACE/videos"
+          echo "============================================"
 
       # ────────────────────────────────────────────────────────────
-      # 3. بث مستمر إلى YouTube (~5h40m)
+      # 3. LIVE Stream Continuous Loop via FFmpeg to YouTube (~5h40m)
       # ────────────────────────────────────────────────────────────
-      - name: "\U0001F534 LIVE Stream to YouTube"
-        shell: pwsh
+      - name: "🔴 LIVE Stream to YouTube"
         env:
           KEY_SECRET: ${{ secrets.YOUTUBE_STREAM_KEY }}
           KEY_INPUT: ${{ inputs.stream_key }}
           QUALITY: ${{ inputs.quality }}
         run: |
-          $ErrorActionPreference = "Stop"
-          $tools = Join-Path $env:GITHUB_WORKSPACE "tools"
-          $ffmpeg  = (Get-ChildItem $tools -Recurse -Filter ffmpeg.exe  | Select-Object -First 1).FullName
-          $ffprobe = (Get-ChildItem $tools -Recurse -Filter ffprobe.exe | Select-Object -First 1).FullName
-          $videos = "C:\videos"
-          $files = Get-ChildItem $videos -File | Where-Object { $_.Extension -in @(".mp4",".mkv",".webm",".mov") }
-          if ($files.Count -eq 0) { Write-Error "No video files found" }
+          # Resolve Stream Key
+          STREAM_KEY=""
+          if [ -n "$KEY_INPUT" ]; then
+            STREAM_KEY="$KEY_INPUT"
+          elif [ -n "$KEY_SECRET" ]; then
+            STREAM_KEY="$KEY_SECRET"
+          else
+            echo "::error::No stream key provided! Set secret YOUTUBE_STREAM_KEY or pass stream_key input"
+            exit 1
+          fi
 
-          # ── مفتاح البث ──
-          $key = ""
-          if (-not [string]::IsNullOrEmpty($env:KEY_SECRET)) { $key = $env:KEY_SECRET }
-          elseif (-not [string]::IsNullOrEmpty($env:KEY_INPUT)) { $key = $env:KEY_INPUT }
-          else { Write-Error "No stream key! Set secret YOUTUBE_STREAM_KEY or pass stream_key input" }
-          $rtmp = "rtmp://a.rtmp.youtube.com/live2/$key"
+          RTMP_URL="rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
 
-          # ── إعدادات الجودة ──
-          $quality = if ($env:QUALITY) { $env:QUALITY } else { "720p" }
-          switch ($quality) {
-            "480p"  { $vScale = "scale=-2:480";  $vBit = "1500k"; $vBuf = "3000k";  $preset = "superfast" }
-            "1080p" { $vScale = "scale=-2:1080"; $vBit = "4500k"; $vBuf = "9000k";  $preset = "veryfast" }
-            default { $vScale = "scale=-2:720";  $vBit = "2500k"; $vBuf = "5000k";  $preset = "veryfast" }
-          }
+          # Quality presets
+          case "${QUALITY:-720p}" in
+            480p)
+              V_SCALE="scale=-2:480"
+              V_BIT="1500k"
+              V_BUF="3000k"
+              PRESET="veryfast"
+              ;;
+            1080p)
+              V_SCALE="scale=-2:1080"
+              V_BIT="4500k"
+              V_BUF="9000k"
+              PRESET="veryfast"
+              ;;
+            *)
+              V_SCALE="scale=-2:720"
+              V_BIT="2500k"
+              V_BUF="5000k"
+              PRESET="veryfast"
+              ;;
+          esac
 
-          Write-Output "============================================"
-          Write-Output "  YouTube Live Stream Engine"
-          Write-Output "============================================"
-          Write-Output "  Quality:  $quality"
-          Write-Output "  Bitrate:  $vBit"
-          Write-Output "  Videos:   $($files.Count) files"
-          Write-Output "  RTMP:     rtmp://a.rtmp.youtube.com/live2/****"
-          Write-Output "============================================"
+          VIDEOS_DIR="$GITHUB_WORKSPACE/videos"
+          
+          # Collect video files (case insensitive)
+          shopt -s nullglob nocaseglob
+          VIDEO_FILES=("$VIDEOS_DIR"/*.mp4 "$VIDEOS_DIR"/*.mkv "$VIDEOS_DIR"/*.mov "$VIDEOS_DIR"/*.webm "$VIDEOS_DIR"/*.avi)
+          shopt -u nullglob nocaseglob
 
-          # ── ملفات العمل ──
-          $listPath = Join-Path $env:GITHUB_WORKSPACE "concat-list.txt"
-          $ffOut = Join-Path $env:GITHUB_WORKSPACE "ff-out.log"
-          $ffErr = Join-Path $env:GITHUB_WORKSPACE "ff-err.log"
-          $totalMin = 340        # ~5h40m
-          $runTargetSec = 330 * 60
-          $start = Get-Date
-          $lastBeat = Get-Date
-          $restarts = 0
-          $inv = [System.Globalization.CultureInfo]::InvariantCulture
+          if [ ${#VIDEO_FILES[@]} -eq 0 ]; then
+            echo "::error::No video files found in $VIDEOS_DIR after download!"
+            exit 1
+          fi
 
-          while ($true) {
-            if (((Get-Date) - $start).TotalMinutes -ge $totalMin) {
-              Write-Output ">> Duration reached ($totalMin min), stopping gracefully"
-              break
-            }
+          echo ">> Found ${#VIDEO_FILES[@]} video file(s) for broadcasting"
 
-            # ── فحص مدة كل فيديو ──
-            $probes = @()
-            foreach ($f in $files) {
-              $dur = 0.0
-              $o = @(& $ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 -- $f.FullName) -join "`n"
-              if ($o) {
-                [double]::TryParse(($o.Trim().Split("`n") | Select-Object -Last 1), [System.Globalization.NumberStyles]::Float, $inv, [ref]$dur) | Out-Null
-              }
-              $hasAudio = $false
-              $ao = @(& $ffprobe -v error -select_streams a -show_entries stream=codec_type -of default=noprint_wrappers=1:nokey=1 -- $f.FullName) -join "`n"
-              if ($ao) { $hasAudio = $true }
-              if ($dur -gt 0) {
-                $probes += [pscustomobject]@{ F = $f; D = $dur; A = $hasAudio }
-              }
-            }
-            if ($probes.Count -eq 0) { Write-Error "No usable videos after probing" }
-            $allAudio = (@($probes | Where-Object { -not $_.A }).Count -eq 0)
+          # Build FFmpeg Concat Playlist
+          PLAYLIST="$GITHUB_WORKSPACE/playlist.txt"
+          rm -f "$PLAYLIST"
+          
+          # Loop list to cover ~6 hours
+          for loop in {1..30}; do
+            for f in "${VIDEO_FILES[@]}"; do
+              echo "file '$f'" >> "$PLAYLIST"
+            done
+          done
 
-            # ── بناء قائمة التشغيل ──
-            $lines = New-Object System.Collections.Generic.List[string]
-            $cov = 0.0; $idx = 0
-            while ($cov -lt $runTargetSec) {
-              $r = $probes[$idx % $probes.Count]
-              $p = $r.F.FullName.Replace('\', '/') -replace "'", "'\\''"
-              $lines.Add("file '$p'")
-              $cov += $r.D
-              $idx++
-            }
-            [IO.File]::WriteAllLines($listPath, $lines, (New-Object Text.UTF8Encoding($false)))
-            Write-Output ">> Playlist: $($lines.Count) entries, ~$([math]::Round($cov/60,1)) min of content"
+          echo "============================================"
+          echo "  YouTube 24/7 Live Stream Engine"
+          echo "============================================"
+          echo "  Quality:  $QUALITY"
+          echo "  Bitrate:  $V_BIT"
+          echo "  Videos:   ${#VIDEO_FILES[@]} unique files in loop"
+          echo "  RTMP:     rtmp://a.rtmp.youtube.com/live2/****"
+          echo "============================================"
 
-            # ── أوامر FFmpeg ──
-            $ffArgs = @(
-              "-hide_banner", "-nostdin", "-loglevel", "warning",
-              "-re",
-              "-f", "concat", "-safe", "0", "-i", $listPath
-            )
-            if ($allAudio) {
-              $ffArgs += @("-map", "0:v:0", "-map", "0:a:0")
-            } else {
-              $ffArgs += @("-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
-                           "-map", "0:v:0", "-map", "1:a:0", "-shortest")
-            }
-            $ffArgs += @(
-              "-vf", $vScale,
-              "-c:v", "libx264", "-preset", $preset, "-pix_fmt", "yuv420p",
-              "-b:v", $vBit, "-maxrate", $vBit, "-bufsize", $vBuf,
-              "-g", "60", "-keyint_min", "60", "-sc_threshold", "0",
-              "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
-              "-rw_timeout", "8000000",
-              "-f", "flv", $rtmp
-            )
-
-            $ffArgsQ = @($ffArgs | ForEach-Object { if ($_ -match "\s") { '"' + $_ + '"' } else { $_ } })
-
-            # ── تشغيل FFmpeg ──
-            $proc = Start-Process -FilePath $ffmpeg -ArgumentList $ffArgsQ `
-              -NoNewWindow -RedirectStandardOutput $ffOut -RedirectStandardError $ffErr -PassThru
-
-            $restarts++
-            Write-Output ">> STREAMING pid=$($proc.Id) attempt=#$restarts at $((Get-Date).ToString('HH:mm:ss'))"
-
-            while (-not $proc.HasExited) {
-              Start-Sleep -Seconds 30
-              $now = Get-Date
-              if (($now - $lastBeat).TotalMinutes -ge 15) {
-                $lastBeat = $now
-                $elapsed = [math]::Round(($now - $start).TotalMinutes, 0)
-                Write-Output "[$($now.ToString('HH:mm:ss'))] LIVE | elapsed ${elapsed}m | restarts $restarts"
-                if (Test-Path $ffErr) {
-                  Get-Content $ffErr -Tail 2 | ForEach-Object { Write-Output "   | $_" }
-                }
-              }
-              if (($now - $start).TotalMinutes -ge $totalMin) { break }
-            }
-
-            $proc.WaitForExit(5000) | Out-Null
-            Write-Output ">> FFmpeg exited code=$($proc.ExitCode) - restarting in 10s..."
-            if (Test-Path $ffErr) {
-              Get-Content $ffErr -Tail 5 | ForEach-Object { Write-Output "   | $_" }
-            }
-            Start-Sleep -Seconds 10
-          }
-
-          Write-Output ""
-          Write-Output "============================================"
-          Write-Output "  Stream session finished"
-          Write-Output "  Total runtime: $([math]::Round(((Get-Date)-$start).TotalHours, 2)) hours"
-          Write-Output "  Total restarts: $restarts"
-          Write-Output "  Watchdog will restart a new session..."
-          Write-Output "============================================"
-
-      # ────────────────────────────────────────────────────────────
-      # 4. تنظيف
-      # ────────────────────────────────────────────────────────────
-      - name: "\U0001F9F9 Cleanup"
-        if: always()
-        shell: pwsh
-        run: |
-          Get-Process ffmpeg -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-          Write-Output "cleanup done"
+          # Stream to YouTube via FFmpeg
+          ffmpeg -hide_banner -loglevel warning \
+            -re \
+            -f concat -safe 0 -i "$PLAYLIST" \
+            -vf "$V_SCALE" \
+            -c:v libx264 -preset "$PRESET" -pix_fmt yuv420p \
+            -b:v "$V_BIT" -maxrate "$V_BIT" -bufsize "$V_BUF" \
+            -g 60 -keyint_min 60 -sc_threshold 0 \
+            -c:a aac -b:a 128k -ar 44100 \
+            -f flv "$RTMP_URL"
