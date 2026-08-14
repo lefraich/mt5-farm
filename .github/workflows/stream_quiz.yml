@@ -1,0 +1,144 @@
+name: "🧠 24/7 Live Trivia Arena Stream"
+
+on:
+  workflow_dispatch:
+    inputs:
+      stream_key:
+        description: "Stream Key for Trivia Arena Live"
+        required: false
+      quality:
+        description: "Stream Quality"
+        required: false
+        default: "1080p"
+        type: choice
+        options:
+          - 720p
+          - 1080p
+
+permissions:
+  contents: read
+
+jobs:
+  trivia-stream:
+    name: "🧠 24/7 Trivia Arena Broadcast"
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      # ────────────────────────────────────────────────────────────
+      # 1. Install Tools (FFmpeg, Chrome, Xvfb, Fonts)
+      # ────────────────────────────────────────────────────────────
+      - name: "📦 Install Environment Tools"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg xvfb xdotool google-chrome-stable fonts-noto-core fonts-noto-extra fonts-jetbrains-mono
+          echo ">> Environment tools ready"
+
+      # ────────────────────────────────────────────────────────────
+      # 2. Download Ambient Background Music
+      # ────────────────────────────────────────────────────────────
+      - name: "🎵 Prepare Audio Asset"
+        env:
+          GH_TOKEN: ${{ secrets.FARM_PAT }}
+        run: |
+          mkdir -p assets
+          if gh release view quiz-assets --repo lefraich/mt5-farm >/dev/null 2>&1; then
+            echo ">> Fetching audio asset from GitHub release..."
+            gh release download quiz-assets --repo lefraich/mt5-farm --pattern "*.mp3" --dir assets --clobber || true
+          fi
+          
+          AUDIO_FILE=$(find assets -name "*.mp3" | head -n 1)
+          if [ -f "$AUDIO_FILE" ]; then
+            echo ">> Found custom audio: $AUDIO_FILE"
+            cp "$AUDIO_FILE" assets/music.mp3
+          else
+            echo ">> Creating synthwave ambient sound..."
+            ffmpeg -f lavfi -i "sine=frequency=220:sample_rate=44100" -t 10 -b:a 128k assets/music.mp3 -y
+          fi
+
+      # ────────────────────────────────────────────────────────────
+      # 3. Launch Web Dashboard & Stream Live via FFmpeg
+      # ────────────────────────────────────────────────────────────
+      - name: "🔴 LIVE Stream Trivia Arena to YouTube"
+        env:
+          KEY_SECRET: ${{ secrets.QUIZ_STREAM_KEY }}
+          KEY_INPUT: ${{ inputs.stream_key }}
+          QUALITY: ${{ inputs.quality }}
+        run: |
+          STREAM_KEY=""
+          if [ -n "$KEY_INPUT" ]; then
+            STREAM_KEY="$KEY_INPUT"
+          elif [ -n "$KEY_SECRET" ]; then
+            STREAM_KEY="$KEY_SECRET"
+          else
+            echo "::error::No stream key provided! Set secret QUIZ_STREAM_KEY or pass stream_key input"
+            exit 1
+          fi
+
+          RTMP_URL="rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}"
+
+          # Start Virtual X Display (1920x1080, 24bit)
+          Xvfb :99 -screen 0 1920x1080x24 -ac +extension GLX +render -noreset &
+          export DISPLAY=:99
+          sleep 3
+
+          # Create Chrome Profile with Translate disabled
+          CHROME_DIR="/tmp/chrome-quiz"
+          mkdir -p "$CHROME_DIR/Default"
+          cat > "$CHROME_DIR/Default/Preferences" << 'PREFS'
+          {
+            "translate": {"enabled": false},
+            "translate_blocked_languages": ["ar","en","fr","es","de"],
+            "browser": {"has_seen_welcome_page": true, "check_default_browser": false},
+            "profile": {"default_content_setting_values": {"notifications": 2}}
+          }
+          PREFS
+          cat > "$CHROME_DIR/First Run" < /dev/null
+
+          DASHBOARD_URL="file://${GITHUB_WORKSPACE}/quiz_dashboard.html"
+          echo ">> Opening: $DASHBOARD_URL"
+
+          google-chrome \
+            --no-sandbox \
+            --disable-setuid-sandbox \
+            --no-first-run \
+            --no-default-browser-check \
+            --disable-translate \
+            --disable-features=Translate,TranslateUI,SearchEngineChoiceScreen,InfoBars \
+            --disable-infobars \
+            --force-device-scale-factor=1 \
+            --hide-scrollbars \
+            --kiosk \
+            --window-size=1920,1080 \
+            --window-position=0,0 \
+            --user-data-dir="$CHROME_DIR" \
+            "$DASHBOARD_URL" &
+
+          CHROME_PID=$!
+          sleep 6
+
+          # Force 1920x1080 resolution
+          WIN_ID=$(xdotool search --pid $CHROME_PID --name "" 2>/dev/null | head -n1 || true)
+          if [ -n "$WIN_ID" ]; then
+            xdotool windowsize "$WIN_ID" 1920 1080 2>/dev/null || true
+            xdotool windowmove "$WIN_ID" 0 0 2>/dev/null || true
+          fi
+          sleep 2
+
+          echo "============================================"
+          echo "  🧠 24/7 Trivia Arena Live Engine"
+          echo "============================================"
+          echo "  Resolution : 1920x1080"
+          echo "  RTMP Target: rtmp://a.rtmp.youtube.com/live2/****"
+          echo "============================================"
+
+          # FFmpeg capture X11 screen + audio -> RTMP
+          ffmpeg -hide_banner -loglevel warning \
+            -f x11grab -draw_mouse 0 -video_size 1920x1080 -framerate 30 -i :99.0 \
+            -stream_loop -1 -i assets/music.mp3 \
+            -c:v libx264 -preset superfast -pix_fmt yuv420p \
+            -b:v 4500k -maxrate 4500k -bufsize 9000k \
+            -g 60 -keyint_min 60 -sc_threshold 0 \
+            -c:a aac -b:a 128k -ar 44100 \
+            -f flv "$RTMP_URL"
