@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0">
+  <title>24/7 Ultimate Live Trivia Arena</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&family=Outfit:wght@800;900&family=JetBrains+Mono:wght@800&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: #030712;
+      color: #ffffff;
+      font-family: 'Cairo', system-ui, sans-serif;
+    }
+
+    /* ── MAIN STUDIO CONTAINER ── */
+    .arena-container {
+      width: 1920px;
+      height: 1080px;
+      background: radial-gradient(circle at 50% 20%, #0d1530 0%, #030712 80%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 28px 48px;
+      position: relative;
+    }
+
+    /* Scanline TV Studio Effect */
+    .arena-container::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.15) 3px, rgba(0,0,0,0.15) 4px);
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    /* ── HEADER (Top Bar) ── */
+    header {
+      height: 90px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(20px);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 0 36px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .brand-box {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .live-dot {
+      width: 20px;
+      height: 20px;
+      background-color: #ff0055;
+      border-radius: 50%;
+      box-shadow: 0 0 25px #ff0055, 0 0 50px #ff0055;
+      animation: pulse 1.2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(0.9); opacity: 0.8; }
+      50% { transform: scale(1.3); opacity: 1; }
+    }
+
+    .brand-title {
+      font-size: 1.8rem;
+      font-weight: 900;
+      background: linear-gradient(90deg, #ffffff, #00f0ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .category-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(0, 240, 255, 0.12);
+      border: 2px solid #00f0ff;
+      color: #00f0ff;
+      font-size: 1.2rem;
+      font-weight: 800;
+      padding: 8px 24px;
+      border-radius: 30px;
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.2);
+    }
+
+    .progress-badge {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 8px 20px;
+      border-radius: 14px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #ffd700;
+      font-family: 'JetBrains Mono', 'Cairo', monospace;
+    }
+
+    /* ── QUESTION CARD (Middle Area) ── */
+    .question-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      margin: 10px 0;
+    }
+
+    .question-box {
+      width: 100%;
+      min-height: 180px;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(24px);
+      border: 3px solid rgba(0, 240, 255, 0.35);
+      border-radius: 28px;
+      padding: 30px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+      position: relative;
+    }
+
+    .question-text {
+      font-size: 2.3rem;
+      font-weight: 900;
+      line-height: 1.4;
+      color: #ffffff;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    /* ── TIMER BAR (5 SECONDS) ── */
+    .timer-container {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .timer-circle {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: #030712;
+      border: 4px solid #00f0ff;
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Outfit', 'Cairo', sans-serif;
+      font-size: 2rem;
+      font-weight: 900;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+
+    .timer-bar-bg {
+      flex: 1;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      position: relative;
+    }
+
+    .timer-bar-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #00f0ff, #00ff88);
+      border-radius: 12px;
+      box-shadow: 0 0 20px #00f0ff;
+      transition: width 0.1s linear;
+    }
+
+    /* ── OPTIONS GRID (2x2) ── */
+    .options-grid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .option-card {
+      background: rgba(15, 23, 42, 0.88);
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .option-letter {
+      width: 55px;
+      height: 55px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: #00f0ff;
+      flex-shrink: 0;
+    }
+
+    .option-text {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #f1f5f9;
+    }
+
+    /* ── CORRECT ANSWER HIGHLIGHT (Vibrant Emerald Glow) ── */
+    .option-card.correct {
+      background: rgba(0, 255, 136, 0.22) !important;
+      border: 4px solid #00ff88 !important;
+      box-shadow: 0 0 45px rgba(0, 255, 136, 0.6) !important;
+      transform: scale(1.02);
+    }
+
+    .option-card.correct .option-letter {
+      background: #00ff88 !important;
+      color: #030712 !important;
+      border-color: #00ff88 !important;
+      box-shadow: 0 0 20px #00ff88;
+    }
+
+    .option-card.correct .option-text {
+      color: #ffffff !important;
+      font-weight: 900 !important;
+      text-shadow: 0 0 15px rgba(0, 255, 136, 0.8);
+    }
+
+    /* ── FOOTER TICKER ── */
+    footer {
+      height: 60px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      overflow: hidden;
+    }
+
+    .footer-tag {
+      background: #ffd700;
+      color: #030712;
+      font-weight: 900;
+      font-size: 0.95rem;
+      padding: 6px 18px;
+      border-radius: 8px;
+      white-space: nowrap;
+      margin-left: 24px;
+      z-index: 5;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    }
+
+    .footer-scroll {
+      white-space: nowrap;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #cbd5e0;
+      animation: ticker 40s linear infinite;
+    }
+
+    @keyframes ticker {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-200%); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="arena-container">
+
+    <!-- HEADER -->
+    <header>
+      <div class="brand-box">
+        <div class="live-dot"></div>
+        <div class="brand-title">حلبة التحدي والذكاء 24/7 | LIVE TRIVIA ARENA</div>
+      </div>
+
+      <div class="category-badge" id="category-badge">
+        <span>🕌</span>
+        <span id="category-name">الأنبياء والصحابة</span>
+      </div>
+
+      <div class="progress-badge" id="progress-badge">
+        السؤال 1 / 500
+      </div>
+    </header>
+
+    <!-- QUESTION CARD -->
+    <div class="question-wrapper">
+      <div class="question-box">
+        <div class="question-text" id="question-text">
+          جاري تحميل السؤال...
+        </div>
+      </div>
+
+      <!-- TIMER 5 SECONDS -->
+      <div class="timer-container">
+        <div class="timer-circle" id="timer-circle">5</div>
+        <div class="timer-bar-bg">
+          <div class="timer-bar-fill" id="timer-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 OPTIONS -->
+    <div class="options-grid">
+      <div class="option-card" id="opt-0">
+        <div class="option-letter">أ</div>
+        <div class="option-text" id="opt-text-0">الخيار الأول</div>
+      </div>
+      <div class="option-card" id="opt-1">
+        <div class="option-letter">ب</div>
+        <div class="option-text" id="opt-text-1">الخيار الثاني</div>
+      </div>
+      <div class="option-card" id="opt-2">
+        <div class="option-letter">ج</div>
+        <div class="option-text" id="opt-text-2">الخيار الثالث</div>
+      </div>
+      <div class="option-card" id="opt-3">
+        <div class="option-letter">د</div>
+        <div class="option-text" id="opt-text-3">الخيار الرابع</div>
+      </div>
+    </div>
+
+    <!-- FOOTER TICKER -->
+    <footer>
+      <div class="footer-tag">💬 شارك في الشات المباشر</div>
+      <div class="footer-scroll">
+        اكتب إجابتك في المحادثة المباشرة (أ / ب / ج / د) قبل انتهاء الوقت! • تحدَّ معلوماتك واجمع أكبر عدد من الإجابات الصحيحة • 500 سؤال مقسمة على 10 مجالات رئيسية • لا تنسَ الاشتراك في القناة والضغط على زر الإعجاب 👍 لدعم البث المباشر المستمر 24/7 •
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- COMPLETE 500 VERIFIED QUESTIONS BANK & ENGINE -->
+  <script src="quiz_data.js"></script>
+  <script>
+    (function() {
+      let currentIndex = 0;
+      const THINK_TIME_SEC = 5;
+      const REVEAL_TIME_SEC = 2.5;
+
+      const qText = document.getElementById('question-text');
+      const catName = document.getElementById('category-name');
+      const progBadge = document.getElementById('progress-badge');
+      const timerCircle = document.getElementById('timer-circle');
+      const timerBar = document.getElementById('timer-bar');
+
+      const optCards = [
+        document.getElementById('opt-0'),
+        document.getElementById('opt-1'),
+        document.getElementById('opt-2'),
+        document.getElementById('opt-3')
+      ];
+
+      const optTexts = [
+        document.getElementById('opt-text-0'),
+        document.getElementById('opt-text-1'),
+        document.getElementById('opt-text-2'),
+        document.getElementById('opt-text-3')
+      ];
+
+      function displayQuestion() {
+        if (!window.QUIZ_BANK || window.QUIZ_BANK.length === 0) return;
+
+        const item = window.QUIZ_BANK[currentIndex];
+
+        // Reset Styles
+        optCards.forEach(card => card.classList.remove('correct'));
+
+        // Update Question & Category
+        qText.textContent = item.q;
+        catName.textContent = item.category;
+        progBadge.textContent = `السؤال ${currentIndex + 1} / ${window.QUIZ_BANK.length}`;
+
+        // Update Options
+        for (let i = 0; i < 4; i++) {
+          optTexts[i].textContent = item.options[i];
+        }
+
+        // Start 5-second countdown
+        let startTime = Date.now();
+        const duration = THINK_TIME_SEC * 1000;
+
+        function updateTimer() {
+          const elapsed = Date.now() - startTime;
+          const remaining = Math.max(0, duration - elapsed);
+          const fraction = remaining / duration;
+
+          timerCircle.textContent = Math.ceil(remaining / 1000);
+          timerBar.style.width = (fraction * 100) + '%';
+
+          if (remaining > 0) {
+            requestAnimationFrame(updateTimer);
+          } else {
+            // Time is UP -> Reveal Correct Answer
+            timerCircle.textContent = '0';
+            timerBar.style.width = '0%';
+            optCards[item.correct].classList.add('correct');
+
+            // Wait 2.5 seconds to show correct answer, then move to next
+            setTimeout(() => {
+              currentIndex = (currentIndex + 1) % window.QUIZ_BANK.length;
+              displayQuestion();
+            }, REVEAL_TIME_SEC * 1000);
+          }
+        }
+
+        requestAnimationFrame(updateTimer);
+      }
+
+      // Initialize
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', displayQuestion);
+      } else {
+        displayQuestion();
+      }
+    })();
+  </script>
+</body>
+</html>
