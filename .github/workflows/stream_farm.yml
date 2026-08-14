@@ -49,19 +49,33 @@ jobs:
           GDRIVE_URL: ${{ inputs.gdrive_url }}
         run: |
           mkdir -p "$GITHUB_WORKSPACE/videos"
-          cd "$GITHUB_WORKSPACE/videos"
           
-          TARGET_URL="${GDRIVE_URL:-https://drive.google.com/drive/folders/1rRDpSNWQuGHy6K41zIij5qwSlWftItEA}"
-          echo ">> Downloading from Google Drive: $TARGET_URL"
-          
-          # Use gdown with remaining arguments
-          gdown --folder "$TARGET_URL" --remaining-ok || gdown "$TARGET_URL" || true
-          
-          # Move any nested videos to root videos dir
-          find "$GITHUB_WORKSPACE/videos" -mindepth 2 -type f -exec mv -t "$GITHUB_WORKSPACE/videos" {} + 2>/dev/null || true
-          
+          python3 - << 'EOF'
+          import re, os, sys, gdown
+
+          raw_url = os.environ.get("GDRIVE_URL", "https://drive.google.com/drive/folders/1rRDpSNWQuGHy6K41zIij5qwSlWftItEA")
+          out_dir = os.path.join(os.environ.get("GITHUB_WORKSPACE", "."), "videos")
+          os.makedirs(out_dir, exist_ok=True)
+
+          print(f">> Processing Google Drive URL: {raw_url}")
+
+          # Extract folder ID
+          folder_match = re.search(r'folders/([a-zA-Z0-9_-]+)', raw_url)
+          if folder_match:
+              folder_id = folder_match.group(1)
+              print(f">> Detected Folder ID: {folder_id}")
+              gdown.download_folder(id=folder_id, output=out_dir, quiet=False, use_cookies=False)
+          else:
+              # Fallback to single file or raw URL
+              print(">> Downloading as direct item...")
+              gdown.download(url=raw_url, output=out_dir, quiet=False, fuzzy=True)
+          EOF
+
+          # Move all nested media files up to root videos directory
+          find "$GITHUB_WORKSPACE/videos" -mindepth 2 -type f \( -iname "*.mp4" -o -iname "*.mkv" -o -iname "*.webm" -o -iname "*.mov" -o -iname "*.avi" \) -exec mv -t "$GITHUB_WORKSPACE/videos" {} + 2>/dev/null || true
+
           echo "============================================"
-          echo ">> Downloaded Video Files:"
+          echo ">> Downloaded Video Files in $GITHUB_WORKSPACE/videos:"
           ls -lh "$GITHUB_WORKSPACE/videos"
           echo "============================================"
 
