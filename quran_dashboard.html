@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0">
+  <title>24/7 Holy Quran Live Stream - Sheikh Al-Sudais</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Cairo:wght@700;800;900&family=Noto+Naskh+Arabic:wght@700&family=Outfit:wght@800;900&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      background: #020b08;
+      color: #ffffff;
+      font-family: 'Amiri Quran', 'Cairo', serif;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── 1920x1080 LUXURY ISLAMIC STAGE ── */
+    .mushaf-container {
+      width: 1920px;
+      height: 1080px;
+      background: radial-gradient(circle at 50% 30%, #062b20 0%, #020e0a 70%, #010604 100%);
+      border: 4px solid rgba(212, 175, 55, 0.4);
+      box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.9), 0 0 80px rgba(212, 175, 55, 0.15);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 30px 60px;
+      position: relative;
+    }
+
+    /* Arabesque Geometric Pattern Overlay */
+    .mushaf-container::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(212, 175, 55, 0.04) 1px, transparent 1px);
+      background-size: 24px 24px;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* Corner Islamic Ornaments */
+    .corner-ornament {
+      position: absolute;
+      width: 90px;
+      height: 90px;
+      border: 3px solid #d4af37;
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0.5;
+    }
+    .corner-tl { top: 20px; left: 20px; border-right: none; border-bottom: none; border-top-left-radius: 20px; }
+    .corner-tr { top: 20px; right: 20px; border-left: none; border-bottom: none; border-top-right-radius: 20px; }
+    .corner-bl { bottom: 20px; left: 20px; border-right: none; border-top: none; border-bottom-left-radius: 20px; }
+    .corner-br { bottom: 20px; right: 20px; border-left: none; border-top: none; border-bottom-right-radius: 20px; }
+
+    /* ── HEADER BAR (Height: 95px) ── */
+    header {
+      width: 100%;
+      height: 95px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(4, 25, 18, 0.9);
+      backdrop-filter: blur(20px);
+      border: 2px solid rgba(212, 175, 55, 0.35);
+      border-radius: 20px;
+      padding: 0 40px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+      z-index: 20;
+    }
+
+    .reciter-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .live-pulse {
+      width: 18px;
+      height: 18px;
+      background-color: #00ff88;
+      border-radius: 50%;
+      box-shadow: 0 0 20px #00ff88, 0 0 40px #00ff88;
+      animation: pulse-green 1.4s infinite ease-in-out;
+    }
+
+    @keyframes pulse-green {
+      0%, 100% { transform: scale(0.85); opacity: 0.8; }
+      50% { transform: scale(1.3); opacity: 1; }
+    }
+
+    .reciter-title {
+      font-family: 'Cairo', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .reciter-badge {
+      background: rgba(212, 175, 55, 0.15);
+      border: 1.5px solid #d4af37;
+      color: #f7d560;
+      font-size: 0.9rem;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-weight: 800;
+    }
+
+    .surah-header-badge {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(212, 175, 55, 0.1);
+      border: 2px solid #d4af37;
+      padding: 8px 28px;
+      border-radius: 30px;
+      box-shadow: 0 0 25px rgba(212, 175, 55, 0.25);
+    }
+
+    .surah-name {
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: #ffd700;
+      text-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+    }
+
+    .surah-type {
+      font-family: 'Cairo', sans-serif;
+      font-size: 1rem;
+      color: #a7f3d0;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.2);
+      padding: 3px 12px;
+      border-radius: 12px;
+    }
+
+    .ayah-counter-badge {
+      font-family: 'Cairo', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #f1f5f9;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 8px 22px;
+      border-radius: 14px;
+    }
+
+    /* ── CENTER MUSHAF STAGE (Height: 740px) ── */
+    .mushaf-stage {
+      width: 100%;
+      height: 740px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 35px;
+      padding: 0 50px;
+      z-index: 20;
+    }
+
+    /* BASMALAH BANNER */
+    .bismillah-banner {
+      font-size: 2.8rem;
+      color: #d4af37;
+      text-shadow: 0 0 30px rgba(212, 175, 55, 0.5);
+      letter-spacing: 1px;
+      transition: opacity 0.5s ease;
+    }
+
+    /* AYAH CONTAINER CARD */
+    .ayah-card {
+      width: 100%;
+      min-height: 380px;
+      background: rgba(3, 20, 14, 0.85);
+      backdrop-filter: blur(24px);
+      border: 3px solid rgba(212, 175, 55, 0.35);
+      border-radius: 28px;
+      padding: 45px 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.8);
+      position: relative;
+    }
+
+    .ayah-text {
+      font-size: 3.3rem;
+      line-height: 2.1;
+      color: #ffffff;
+      text-shadow: 0 2px 15px rgba(0, 0, 0, 0.9);
+      transition: all 0.4s ease;
+      word-spacing: 6px;
+    }
+
+    /* AYAH END ORNAMENT */
+    .ayah-symbol {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Amiri Quran', 'Cairo', serif;
+      font-size: 2.8rem;
+      color: #ffd700;
+      margin: 0 14px;
+      text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+    }
+
+    /* AUDIO WAVEFORM ANIMATION */
+    .wave-bars {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 35px;
+    }
+
+    .wave-bar {
+      width: 5px;
+      background: #d4af37;
+      border-radius: 4px;
+      animation: wave 1.2s infinite ease-in-out;
+      box-shadow: 0 0 12px #d4af37;
+    }
+    .wave-bar:nth-child(1) { height: 12px; animation-delay: 0.1s; }
+    .wave-bar:nth-child(2) { height: 26px; animation-delay: 0.3s; }
+    .wave-bar:nth-child(3) { height: 35px; animation-delay: 0.2s; }
+    .wave-bar:nth-child(4) { height: 20px; animation-delay: 0.4s; }
+    .wave-bar:nth-child(5) { height: 30px; animation-delay: 0.15s; }
+    .wave-bar:nth-child(6) { height: 15px; animation-delay: 0.25s; }
+
+    @keyframes wave {
+      0%, 100% { transform: scaleY(0.4); opacity: 0.6; }
+      50% { transform: scaleY(1.2); opacity: 1; }
+    }
+
+    /* ── FOOTER TICKER (Height: 65px) ── */
+    footer {
+      width: 100%;
+      height: 65px;
+      background: rgba(4, 25, 18, 0.95);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      overflow: hidden;
+      z-index: 20;
+    }
+
+    .footer-tag {
+      background: #d4af37;
+      color: #020b08;
+      font-family: 'Cairo', sans-serif;
+      font-weight: 900;
+      font-size: 0.95rem;
+      padding: 6px 18px;
+      border-radius: 8px;
+      white-space: nowrap;
+      margin-left: 20px;
+      box-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+      flex-shrink: 0;
+    }
+
+    .footer-scroll {
+      white-space: nowrap;
+      font-family: 'Cairo', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      animation: ticker 42s linear infinite;
+    }
+
+    @keyframes ticker {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-200%); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="mushaf-container">
+
+    <!-- CORNER ORNAMENTS -->
+    <div class="corner-ornament corner-tl"></div>
+    <div class="corner-ornament corner-tr"></div>
+    <div class="corner-ornament corner-bl"></div>
+    <div class="corner-ornament corner-br"></div>
+
+    <!-- HEADER -->
+    <header>
+      <div class="reciter-box">
+        <div class="live-pulse"></div>
+        <div class="reciter-title">
+          <span>القرآن الكريم مباشر 24/7</span>
+          <span class="reciter-badge">الشيخ عبد الرحمن السديس</span>
+        </div>
+      </div>
+
+      <div class="surah-header-badge">
+        <span class="surah-name" id="surah-name">سُورَةُ الفَاتِحَةِ</span>
+        <span class="surah-type" id="surah-type">مكية</span>
+      </div>
+
+      <div class="ayah-counter-badge" id="ayah-counter">
+        الآية 1 من 7
+      </div>
+    </header>
+
+    <!-- CENTER MUSHAF STAGE -->
+    <div class="mushaf-stage">
+      
+      <!-- BISMILLAH -->
+      <div class="bismillah-banner" id="bismillah-banner">
+        بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+      </div>
+
+      <!-- AYAH CARD -->
+      <div class="ayah-card">
+        <div class="ayah-text" id="ayah-text">
+          بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ <span class="ayah-symbol">۝١</span>
+        </div>
+      </div>
+
+      <!-- WAVE VISUALIZER -->
+      <div class="wave-bars">
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+      </div>
+
+    </div>
+
+    <!-- FOOTER TICKER -->
+    <footer>
+      <div class="footer-tag">📖 القرآن الكريم كامل 24/7</div>
+      <div class="footer-scroll">
+        تلاوة خاشعة مرتلة من أول سورة الفاتحة إلى سورة الناس بصوت فضيلة الشيخ الدكتور عبد الرحمن السديس إمام وخطيب المسجد الحرام بمكة المكرمة • نسأل الله أن يجعل هذا القرآن ربيع قلوبنا ونور صدورنا وجلاء أحزاننا • لا تنسَ الضغط على زر الإعجاب والاشتراك في القناة لتصلك التلاوات المباركة •
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- AUDIO PLAYER -->
+  <audio id="quran-audio" preload="auto"></audio>
+
+  <!-- SCRIPT ENGINE -->
+  <script>
+    const SURAHS = [
+  {
+    "id": 1,
+    "name_ar": "الفاتحة",
+    "name_complex": "Al-Fātiĥah",
+    "revelation_place": "مكية",
+    "verses_count": 7,
+    "bismillah_pre": false
+  },
+  {
+    "id": 2,
+    "name_ar": "البقرة",
+    "name_complex": "Al-Baqarah",
+    "revelation_place": "مدنية",
+    "verses_count": 286,
+    "bismillah_pre": true
+  },
+  {
+    "id": 3,
+    "name_ar": "آل عمران",
+    "name_complex": "Āli `Imrān",
+    "revelation_place": "مدنية",
+    "verses_count": 200,
+    "bismillah_pre": true
+  },
+  {
+    "id": 4,
+    "name_ar": "النساء",
+    "name_complex": "An-Nisā",
+    "revelation_place": "مدنية",
+    "verses_count": 176,
+    "bismillah_pre": true
+  },
+  {
+    "id": 5,
+    "name_ar": "المائدة",
+    "name_complex": "Al-Mā'idah",
+    "revelation_place": "مدنية",
+    "verses_count": 120,
+    "bismillah_pre": true
+  },
+  {
+    "id": 6,
+    "name_ar": "الأنعام",
+    "name_complex": "Al-'An`ām",
+    "revelation_place": "مكية",
+    "verses_count": 165,
+    "bismillah_pre": true
+  },
+  {
+    "id": 7,
+    "name_ar": "الأعراف",
+    "name_complex": "Al-'A`rāf",
+    "revelation_place": "مكية",
+    "verses_count": 206,
+    "bismillah_pre": true
+  },
+  {
+    "id": 8,
+    "name_ar": "الأنفال",
+    "name_complex": "Al-'Anfāl",
+    "revelation_place": "مدنية",
+    "verses_count": 75,
+    "bismillah_pre": true
+  },
+  {
+    "id": 9,
+    "name_ar": "التوبة",
+    "name_complex": "At-Tawbah",
+    "revelation_place": "مدنية",
+    "verses_count": 129,
+    "bismillah_pre": false
+  },
+  {
+    "id": 10,
+    "name_ar": "يونس",
+    "name_complex": "Yūnus",
+    "revelation_place": "مكية",
+    "verses_count": 109,
+    "bismillah_pre": true
+  },
+  {
+    "id": 11,
+    "name_ar": "هود",
+    "name_complex": "Hūd",
+    "revelation_place": "مكية",
+    "verses_count": 123,
+    "bismillah_pre": true
+  },
+  {
+    "id": 12,
+    "name_ar": "يوسف",
+    "name_complex": "Yūsuf",
+    "revelation_place": "مكية",
+    "verses_count": 111,
+    "bismillah_pre": true
+  },
+  {
+    "id": 13,
+    "name_ar": "الرعد",
+    "name_complex": "Ar-Ra`d",
+    "revelation_place": "مدنية",
+    "verses_count": 43,
+    "bismillah_pre": true
+  },
+  {
+    "id": 14,
+    "name_ar": "ابراهيم",
+    "name_complex": "Ibrāhīm",
+    "revelation_place": "مكية",
+    "verses_count": 52,
+    "bismillah_pre": true
+  },
+  {
+    "id": 15,
+    "name_ar": "الحجر",
+    "name_complex": "Al-Ĥijr",
+    "revelation_place": "مكية",
+    "verses_count": 99,
+    "bismillah_pre": true
+  },
+  {
+    "id": 16,
+    "name_ar": "النحل",
+    "name_complex": "An-Naĥl",
+    "revelation_place": "مكية",
+    "verses_count": 128,
+    "bismillah_pre": true
+  },
+  {
+    "id": 17,
+    "name_ar": "الإسراء",
+    "name_complex": "Al-'Isrā",
+    "revelation_place": "مكية",
+    "verses_count": 111,
+    "bismillah_pre": true
+  },
+  {
+    "id": 18,
+    "name_ar": "الكهف",
+    "name_complex": "Al-Kahf",
+    "revelation_place": "مكية",
+    "verses_count": 110,
+    "bismillah_pre": true
+  },
+  {
+    "id": 19,
+    "name_ar": "مريم",
+    "name_complex": "Maryam",
+    "revelation_place": "مكية",
+    "verses_count": 98,
+    "bismillah_pre": true
+  },
+  {
+    "id": 20,
+    "name_ar": "طه",
+    "name_complex": "Ţāhā",
+    "revelation_place": "مكية",
+    "verses_count": 135,
+    "bismillah_pre": true
+  },
+  {
+    "id": 21,
+    "name_ar": "الأنبياء",
+    "name_complex": "Al-'Anbyā",
+    "revelation_place": "مكية",
+    "verses_count": 112,
+    "bismillah_pre": true
+  },
+  {
+    "id": 22,
+    "name_ar": "الحج",
+    "name_complex": "Al-Ĥajj",
+    "revelation_place": "مدنية",
+    "verses_count": 78,
+    "bismillah_pre": true
+  },
+  {
+    "id": 23,
+    "name_ar": "المؤمنون",
+    "name_complex": "Al-Mu'minūn",
+    "revelation_place": "مكية",
+    "verses_count": 118,
+    "bismillah_pre": true
+  },
+  {
+    "id": 24,
+    "name_ar": "النور",
+    "name_complex": "An-Nūr",
+    "revelation_place": "مدنية",
+    "verses_count": 64,
+    "bismillah_pre": true
+  },
+  {
+    "id": 25,
+    "name_ar": "الفرقان",
+    "name_complex": "Al-Furqān",
+    "revelation_place": "مكية",
+    "verses_count": 77,
+    "bismillah_pre": true
+  },
+  {
+    "id": 26,
+    "name_ar": "الشعراء",
+    "name_complex": "Ash-Shu`arā",
+    "revelation_place": "مكية",
+    "verses_count": 227,
+    "bismillah_pre": true
+  },
+  {
+    "id": 27,
+    "name_ar": "النمل",
+    "name_complex": "An-Naml",
+    "revelation_place": "مكية",
+    "verses_count": 93,
+    "bismillah_pre": true
+  },
+  {
+    "id": 28,
+    "name_ar": "القصص",
+    "name_complex": "Al-Qaşaş",
+    "revelation_place": "مكية",
+    "verses_count": 88,
+    "bismillah_pre": true
+  },
+  {
+    "id": 29,
+    "name_ar": "العنكبوت",
+    "name_complex": "Al-`Ankabūt",
+    "revelation_place": "مكية",
+    "verses_count": 69,
+    "bismillah_pre": true
+  },
+  {
+    "id": 30,
+    "name_ar": "الروم",
+    "name_complex": "Ar-Rūm",
+    "revelation_place": "مكية",
+    "verses_count": 60,
+    "bismillah_pre": true
+  },
+  {
+    "id": 31,
+    "name_ar": "لقمان",
+    "name_complex": "Luqmān",
+    "revelation_place": "مكية",
+    "verses_count": 34,
+    "bismillah_pre": true
+  },
+  {
+    "id": 32,
+    "name_ar": "السجدة",
+    "name_complex": "As-Sajdah",
+    "revelation_place": "مكية",
+    "verses_count": 30,
+    "bismillah_pre": true
+  },
+  {
+    "id": 33,
+    "name_ar": "الأحزاب",
+    "name_complex": "Al-'Aĥzāb",
+    "revelation_place": "مدنية",
+    "verses_count": 73,
+    "bismillah_pre": true
+  },
+  {
+    "id": 34,
+    "name_ar": "سبإ",
+    "name_complex": "Saba",
+    "revelation_place": "مكية",
+    "verses_count": 54,
+    "bismillah_pre": true
+  },
+  {
+    "id": 35,
+    "name_ar": "فاطر",
+    "name_complex": "Fāţir",
+    "revelation_place": "مكية",
+    "verses_count": 45,
+    "bismillah_pre": true
+  },
+  {
+    "id": 36,
+    "name_ar": "يس",
+    "name_complex": "Yā-Sīn",
+    "revelation_place": "مكية",
+    "verses_count": 83,
+    "bismillah_pre": true
+  },
+  {
+    "id": 37,
+    "name_ar": "الصافات",
+    "name_complex": "Aş-Şāffāt",
+    "revelation_place": "مكية",
+    "verses_count": 182,
+    "bismillah_pre": true
+  },
+  {
+    "id": 38,
+    "name_ar": "ص",
+    "name_complex": "Şād",
+    "revelation_place": "مكية",
+    "verses_count": 88,
+    "bismillah_pre": true
+  },
+  {
+    "id": 39,
+    "name_ar": "الزمر",
+    "name_complex": "Az-Zumar",
+    "revelation_place": "مكية",
+    "verses_count": 75,
+    "bismillah_pre": true
+  },
+  {
+    "id": 40,
+    "name_ar": "غافر",
+    "name_complex": "Ghāfir",
+    "revelation_place": "مكية",
+    "verses_count": 85,
+    "bismillah_pre": true
+  },
+  {
+    "id": 41,
+    "name_ar": "فصلت",
+    "name_complex": "Fuşşilat",
+    "revelation_place": "مكية",
+    "verses_count": 54,
+    "bismillah_pre": true
+  },
+  {
+    "id": 42,
+    "name_ar": "الشورى",
+    "name_complex": "Ash-Shūraá",
+    "revelation_place": "مكية",
+    "verses_count": 53,
+    "bismillah_pre": true
+  },
+  {
+    "id": 43,
+    "name_ar": "الزخرف",
+    "name_complex": "Az-Zukhruf",
+    "revelation_place": "مكية",
+    "verses_count": 89,
+    "bismillah_pre": true
+  },
+  {
+    "id": 44,
+    "name_ar": "الدخان",
+    "name_complex": "Ad-Dukhān",
+    "revelation_place": "مكية",
+    "verses_count": 59,
+    "bismillah_pre": true
+  },
+  {
+    "id": 45,
+    "name_ar": "الجاثية",
+    "name_complex": "Al-Jāthiyah",
+    "revelation_place": "مكية",
+    "verses_count": 37,
+    "bismillah_pre": true
+  },
+  {
+    "id": 46,
+    "name_ar": "الأحقاف",
+    "name_complex": "Al-'Aĥqāf",
+    "revelation_place": "مكية",
+    "verses_count": 35,
+    "bismillah_pre": true
+  },
+  {
+    "id": 47,
+    "name_ar": "محمد",
+    "name_complex": "Muĥammad",
+    "revelation_place": "مدنية",
+    "verses_count": 38,
+    "bismillah_pre": true
+  },
+  {
+    "id": 48,
+    "name_ar": "الفتح",
+    "name_complex": "Al-Fatĥ",
+    "revelation_place": "مدنية",
+    "verses_count": 29,
+    "bismillah_pre": true
+  },
+  {
+    "id": 49,
+    "name_ar": "الحجرات",
+    "name_complex": "Al-Ĥujurāt",
+    "revelation_place": "مدنية",
+    "verses_count": 18,
+    "bismillah_pre": true
+  },
+  {
+    "id": 50,
+    "name_ar": "ق",
+    "name_complex": "Qāf",
+    "revelation_place": "مكية",
+    "verses_count": 45,
+    "bismillah_pre": true
+  },
+  {
+    "id": 51,
+    "name_ar": "الذاريات",
+    "name_complex": "Adh-Dhāriyāt",
+    "revelation_place": "مكية",
+    "verses_count": 60,
+    "bismillah_pre": true
+  },
+  {
+    "id": 52,
+    "name_ar": "الطور",
+    "name_complex": "Aţ-Ţūr",
+    "revelation_place": "مكية",
+    "verses_count": 49,
+    "bismillah_pre": true
+  },
+  {
+    "id": 53,
+    "name_ar": "النجم",
+    "name_complex": "An-Najm",
+    "revelation_place": "مكية",
+    "verses_count": 62,
+    "bismillah_pre": true
+  },
+  {
+    "id": 54,
+    "name_ar": "القمر",
+    "name_complex": "Al-Qamar",
+    "revelation_place": "مكية",
+    "verses_count": 55,
+    "bismillah_pre": true
+  },
+  {
+    "id": 55,
+    "name_ar": "الرحمن",
+    "name_complex": "Ar-Raĥmān",
+    "revelation_place": "مدنية",
+    "verses_count": 78,
+    "bismillah_pre": true
+  },
+  {
+    "id": 56,
+    "name_ar": "الواقعة",
+    "name_complex": "Al-Wāqi`ah",
+    "revelation_place": "مكية",
+    "verses_count": 96,
+    "bismillah_pre": true
+  },
+  {
+    "id": 57,
+    "name_ar": "الحديد",
+    "name_complex": "Al-Ĥadīd",
+    "revelation_place": "مدنية",
+    "verses_count": 29,
+    "bismillah_pre": true
+  },
+  {
+    "id": 58,
+    "name_ar": "المجادلة",
+    "name_complex": "Al-Mujādila",
+    "revelation_place": "مدنية",
+    "verses_count": 22,
+    "bismillah_pre": true
+  },
+  {
+    "id": 59,
+    "name_ar": "الحشر",
+    "name_complex": "Al-Ĥashr",
+    "revelation_place": "مدنية",
+    "verses_count": 24,
+    "bismillah_pre": true
+  },
+  {
+    "id": 60,
+    "name_ar": "الممتحنة",
+    "name_complex": "Al-Mumtaĥanah",
+    "revelation_place": "مدنية",
+    "verses_count": 13,
+    "bismillah_pre": true
+  },
+  {
+    "id": 61,
+    "name_ar": "الصف",
+    "name_complex": "Aş-Şaf",
+    "revelation_place": "مدنية",
+    "verses_count": 14,
+    "bismillah_pre": true
+  },
+  {
+    "id": 62,
+    "name_ar": "الجمعة",
+    "name_complex": "Al-Jumu`ah",
+    "revelation_place": "مدنية",
+    "verses_count": 11,
+    "bismillah_pre": true
+  },
+  {
+    "id": 63,
+    "name_ar": "المنافقون",
+    "name_complex": "Al-Munāfiqūn",
+    "revelation_place": "مدنية",
+    "verses_count": 11,
+    "bismillah_pre": true
+  },
+  {
+    "id": 64,
+    "name_ar": "التغابن",
+    "name_complex": "At-Taghābun",
+    "revelation_place": "مدنية",
+    "verses_count": 18,
+    "bismillah_pre": true
+  },
+  {
+    "id": 65,
+    "name_ar": "الطلاق",
+    "name_complex": "Aţ-Ţalāq",
+    "revelation_place": "مدنية",
+    "verses_count": 12,
+    "bismillah_pre": true
+  },
+  {
+    "id": 66,
+    "name_ar": "التحريم",
+    "name_complex": "At-Taĥrīm",
+    "revelation_place": "مدنية",
+    "verses_count": 12,
+    "bismillah_pre": true
+  },
+  {
+    "id": 67,
+    "name_ar": "الملك",
+    "name_complex": "Al-Mulk",
+    "revelation_place": "مكية",
+    "verses_count": 30,
+    "bismillah_pre": true
+  },
+  {
+    "id": 68,
+    "name_ar": "القلم",
+    "name_complex": "Al-Qalam",
+    "revelation_place": "مكية",
+    "verses_count": 52,
+    "bismillah_pre": true
+  },
+  {
+    "id": 69,
+    "name_ar": "الحاقة",
+    "name_complex": "Al-Ĥāqqah",
+    "revelation_place": "مكية",
+    "verses_count": 52,
+    "bismillah_pre": true
+  },
+  {
+    "id": 70,
+    "name_ar": "المعارج",
+    "name_complex": "Al-Ma`ārij",
+    "revelation_place": "مكية",
+    "verses_count": 44,
+    "bismillah_pre": true
+  },
+  {
+    "id": 71,
+    "name_ar": "نوح",
+    "name_complex": "Nūĥ",
+    "revelation_place": "مكية",
+    "verses_count": 28,
+    "bismillah_pre": true
+  },
+  {
+    "id": 72,
+    "name_ar": "الجن",
+    "name_complex": "Al-Jinn",
+    "revelation_place": "مكية",
+    "verses_count": 28,
+    "bismillah_pre": true
+  },
+  {
+    "id": 73,
+    "name_ar": "المزمل",
+    "name_complex": "Al-Muzzammil",
+    "revelation_place": "مكية",
+    "verses_count": 20,
+    "bismillah_pre": true
+  },
+  {
+    "id": 74,
+    "name_ar": "المدثر",
+    "name_complex": "Al-Muddaththir",
+    "revelation_place": "مكية",
+    "verses_count": 56,
+    "bismillah_pre": true
+  },
+  {
+    "id": 75,
+    "name_ar": "القيامة",
+    "name_complex": "Al-Qiyāmah",
+    "revelation_place": "مكية",
+    "verses_count": 40,
+    "bismillah_pre": true
+  },
+  {
+    "id": 76,
+    "name_ar": "الانسان",
+    "name_complex": "Al-'Insān",
+    "revelation_place": "مدنية",
+    "verses_count": 31,
+    "bismillah_pre": true
+  },
+  {
+    "id": 77,
+    "name_ar": "المرسلات",
+    "name_complex": "Al-Mursalāt",
+    "revelation_place": "مكية",
+    "verses_count": 50,
+    "bismillah_pre": true
+  },
+  {
+    "id": 78,
+    "name_ar": "النبإ",
+    "name_complex": "An-Naba",
+    "revelation_place": "مكية",
+    "verses_count": 40,
+    "bismillah_pre": true
+  },
+  {
+    "id": 79,
+    "name_ar": "النازعات",
+    "name_complex": "An-Nāzi`āt",
+    "revelation_place": "مكية",
+    "verses_count": 46,
+    "bismillah_pre": true
+  },
+  {
+    "id": 80,
+    "name_ar": "عبس",
+    "name_complex": "`Abasa",
+    "revelation_place": "مكية",
+    "verses_count": 42,
+    "bismillah_pre": true
+  },
+  {
+    "id": 81,
+    "name_ar": "التكوير",
+    "name_complex": "At-Takwīr",
+    "revelation_place": "مكية",
+    "verses_count": 29,
+    "bismillah_pre": true
+  },
+  {
+    "id": 82,
+    "name_ar": "الإنفطار",
+    "name_complex": "Al-'Infiţār",
+    "revelation_place": "مكية",
+    "verses_count": 19,
+    "bismillah_pre": true
+  },
+  {
+    "id": 83,
+    "name_ar": "المطففين",
+    "name_complex": "Al-Muţaffifīn",
+    "revelation_place": "مكية",
+    "verses_count": 36,
+    "bismillah_pre": true
+  },
+  {
+    "id": 84,
+    "name_ar": "الإنشقاق",
+    "name_complex": "Al-'Inshiqāq",
+    "revelation_place": "مكية",
+    "verses_count": 25,
+    "bismillah_pre": true
+  },
+  {
+    "id": 85,
+    "name_ar": "البروج",
+    "name_complex": "Al-Burūj",
+    "revelation_place": "مكية",
+    "verses_count": 22,
+    "bismillah_pre": true
+  },
+  {
+    "id": 86,
+    "name_ar": "الطارق",
+    "name_complex": "Aţ-Ţāriq",
+    "revelation_place": "مكية",
+    "verses_count": 17,
+    "bismillah_pre": true
+  },
+  {
+    "id": 87,
+    "name_ar": "الأعلى",
+    "name_complex": "Al-'A`lá",
+    "revelation_place": "مكية",
+    "verses_count": 19,
+    "bismillah_pre": true
+  },
+  {
+    "id": 88,
+    "name_ar": "الغاشية",
+    "name_complex": "Al-Ghāshiyah",
+    "revelation_place": "مكية",
+    "verses_count": 26,
+    "bismillah_pre": true
+  },
+  {
+    "id": 89,
+    "name_ar": "الفجر",
+    "name_complex": "Al-Fajr",
+    "revelation_place": "مكية",
+    "verses_count": 30,
+    "bismillah_pre": true
+  },
+  {
+    "id": 90,
+    "name_ar": "البلد",
+    "name_complex": "Al-Balad",
+    "revelation_place": "مكية",
+    "verses_count": 20,
+    "bismillah_pre": true
+  },
+  {
+    "id": 91,
+    "name_ar": "الشمس",
+    "name_complex": "Ash-Shams",
+    "revelation_place": "مكية",
+    "verses_count": 15,
+    "bismillah_pre": true
+  },
+  {
+    "id": 92,
+    "name_ar": "الليل",
+    "name_complex": "Al-Layl",
+    "revelation_place": "مكية",
+    "verses_count": 21,
+    "bismillah_pre": true
+  },
+  {
+    "id": 93,
+    "name_ar": "الضحى",
+    "name_complex": "Ađ-Đuĥaá",
+    "revelation_place": "مكية",
+    "verses_count": 11,
+    "bismillah_pre": true
+  },
+  {
+    "id": 94,
+    "name_ar": "الشرح",
+    "name_complex": "Ash-Sharĥ",
+    "revelation_place": "مكية",
+    "verses_count": 8,
+    "bismillah_pre": true
+  },
+  {
+    "id": 95,
+    "name_ar": "التين",
+    "name_complex": "At-Tīn",
+    "revelation_place": "مكية",
+    "verses_count": 8,
+    "bismillah_pre": true
+  },
+  {
+    "id": 96,
+    "name_ar": "العلق",
+    "name_complex": "Al-`Alaq",
+    "revelation_place": "مكية",
+    "verses_count": 19,
+    "bismillah_pre": true
+  },
+  {
+    "id": 97,
+    "name_ar": "القدر",
+    "name_complex": "Al-Qadr",
+    "revelation_place": "مكية",
+    "verses_count": 5,
+    "bismillah_pre": true
+  },
+  {
+    "id": 98,
+    "name_ar": "البينة",
+    "name_complex": "Al-Bayyinah",
+    "revelation_place": "مدنية",
+    "verses_count": 8,
+    "bismillah_pre": true
+  },
+  {
+    "id": 99,
+    "name_ar": "الزلزلة",
+    "name_complex": "Az-Zalzalah",
+    "revelation_place": "مدنية",
+    "verses_count": 8,
+    "bismillah_pre": true
+  },
+  {
+    "id": 100,
+    "name_ar": "العاديات",
+    "name_complex": "Al-`Ādiyāt",
+    "revelation_place": "مكية",
+    "verses_count": 11,
+    "bismillah_pre": true
+  },
+  {
+    "id": 101,
+    "name_ar": "القارعة",
+    "name_complex": "Al-Qāri`ah",
+    "revelation_place": "مكية",
+    "verses_count": 11,
+    "bismillah_pre": true
+  },
+  {
+    "id": 102,
+    "name_ar": "التكاثر",
+    "name_complex": "At-Takāthur",
+    "revelation_place": "مكية",
+    "verses_count": 8,
+    "bismillah_pre": true
+  },
+  {
+    "id": 103,
+    "name_ar": "العصر",
+    "name_complex": "Al-`Aşr",
+    "revelation_place": "مكية",
+    "verses_count": 3,
+    "bismillah_pre": true
+  },
+  {
+    "id": 104,
+    "name_ar": "الهمزة",
+    "name_complex": "Al-Humazah",
+    "revelation_place": "مكية",
+    "verses_count": 9,
+    "bismillah_pre": true
+  },
+  {
+    "id": 105,
+    "name_ar": "الفيل",
+    "name_complex": "Al-Fīl",
+    "revelation_place": "مكية",
+    "verses_count": 5,
+    "bismillah_pre": true
+  },
+  {
+    "id": 106,
+    "name_ar": "قريش",
+    "name_complex": "Quraysh",
+    "revelation_place": "مكية",
+    "verses_count": 4,
+    "bismillah_pre": true
+  },
+  {
+    "id": 107,
+    "name_ar": "الماعون",
+    "name_complex": "Al-Mā`ūn",
+    "revelation_place": "مكية",
+    "verses_count": 7,
+    "bismillah_pre": true
+  },
+  {
+    "id": 108,
+    "name_ar": "الكوثر",
+    "name_complex": "Al-Kawthar",
+    "revelation_place": "مكية",
+    "verses_count": 3,
+    "bismillah_pre": true
+  },
+  {
+    "id": 109,
+    "name_ar": "الكافرون",
+    "name_complex": "Al-Kāfirūn",
+    "revelation_place": "مكية",
+    "verses_count": 6,
+    "bismillah_pre": true
+  },
+  {
+    "id": 110,
+    "name_ar": "النصر",
+    "name_complex": "An-Naşr",
+    "revelation_place": "مدنية",
+    "verses_count": 3,
+    "bismillah_pre": true
+  },
+  {
+    "id": 111,
+    "name_ar": "المسد",
+    "name_complex": "Al-Masad",
+    "revelation_place": "مكية",
+    "verses_count": 5,
+    "bismillah_pre": true
+  },
+  {
+    "id": 112,
+    "name_ar": "الإخلاص",
+    "name_complex": "Al-'Ikhlāş",
+    "revelation_place": "مكية",
+    "verses_count": 4,
+    "bismillah_pre": true
+  },
+  {
+    "id": 113,
+    "name_ar": "الفلق",
+    "name_complex": "Al-Falaq",
+    "revelation_place": "مكية",
+    "verses_count": 5,
+    "bismillah_pre": true
+  },
+  {
+    "id": 114,
+    "name_ar": "الناس",
+    "name_complex": "An-Nās",
+    "revelation_place": "مكية",
+    "verses_count": 6,
+    "bismillah_pre": true
+  }
+];
+
+    (function() {
+      let currentSurahIdx = 0;   // 0 = Surah 1 (Al-Fatihah)
+      let currentAyahNum = 1;    // 1-indexed
+      let currentVerses = [];    // Cached verses of current surah
+      
+      const audioPlayer = document.getElementById('quran-audio');
+      const surahNameEl = document.getElementById('surah-name');
+      const surahTypeEl = document.getElementById('surah-type');
+      const ayahCounterEl = document.getElementById('ayah-counter');
+      const bismillahEl = document.getElementById('bismillah-banner');
+      const ayahTextEl = document.getElementById('ayah-text');
+
+      // Convert number to Arabic-Indic digits
+      function toArabicDigits(num) {
+        return num.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+      }
+
+      // Fetch Verses of Surah from Quran.com API with retry
+      async function loadSurah(surahId) {
+        try {
+          const res = await fetch(`https://api.quran.com/api/v4/quran/verses/uthmani?chapter_number=${surahId}`);
+          const data = await res.json();
+          return data.verses;
+        } catch (e) {
+          console.error("Error loading verses, retrying...", e);
+          await new Promise(r => setTimeout(r, 1000));
+          return loadSurah(surahId);
+        }
+      }
+
+      // Play specific Ayah
+      async function playAyah() {
+        const surah = SURAHS[currentSurahIdx];
+        
+        // Update Header
+        surahNameEl.textContent = surah.name_ar;
+        surahTypeEl.textContent = surah.revelation_place;
+        ayahCounterEl.textContent = `الآية ${toArabicDigits(currentAyahNum)} من ${toArabicDigits(surah.verses_count)}`;
+
+        // Show/Hide Bismillah (Hide in Surah 9 At-Tawbah or when inside verses if already in verse 1)
+        if (surah.id === 9) {
+          bismillahEl.style.display = 'none';
+        } else if (surah.id === 1) {
+          bismillahEl.style.display = 'none'; // Al-Fatihah already has Bismillah as verse 1
+        } else {
+          bismillahEl.style.display = 'block';
+        }
+
+        // Get Verse Text
+        const verseObj = currentVerses.find(v => v.verse_key === `${surah.id}:${currentAyahNum}`);
+        if (verseObj) {
+          ayahTextEl.innerHTML = `${verseObj.text_uthmani} <span class="ayah-symbol">۝${toArabicDigits(currentAyahNum)}</span>`;
+        }
+
+        // Build Audio URL for Al-Sudais (e.g. 001001.mp3)
+        const s3 = String(surah.id).padStart(3, '0');
+        const a3 = String(currentAyahNum).padStart(3, '0');
+        const audioUrl = `https://everyayah.com/data/Abdurrahmaan_As-Sudais_192kbps/${s3}${a3}.mp3`;
+
+        audioPlayer.src = audioUrl;
+        audioPlayer.play().catch(e => {
+          console.log("Audio play deferred, retrying...", e);
+          setTimeout(() => audioPlayer.play(), 500);
+        });
+
+        // Prefetch next audio
+        prefetchNext(surah.id, currentAyahNum, surah.verses_count);
+      }
+
+      // Prefetch Next Ayah
+      function prefetchNext(sId, aNum, maxA) {
+        let nS = sId, nA = aNum + 1;
+        if (nA > maxA) {
+          nS = (sId % 114) + 1;
+          nA = 1;
+        }
+        const s3 = String(nS).padStart(3, '0');
+        const a3 = String(nA).padStart(3, '0');
+        const nextUrl = `https://everyayah.com/data/Abdurrahmaan_As-Sudais_192kbps/${s3}${a3}.mp3`;
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = nextUrl;
+        document.head.appendChild(link);
+      }
+
+      // When Audio Ends -> Move to Next Ayah
+      audioPlayer.onended = async function() {
+        const surah = SURAHS[currentSurahIdx];
+        if (currentAyahNum < surah.verses_count) {
+          currentAyahNum++;
+          playAyah();
+        } else {
+          // Surah Finished -> Move to Next Surah
+          currentSurahIdx = (currentSurahIdx + 1) % SURAHS.length;
+          currentAyahNum = 1;
+          currentVerses = await loadSurah(SURAHS[currentSurahIdx].id);
+          playAyah();
+        }
+      };
+
+      // Handle Audio Errors gracefully
+      audioPlayer.onerror = function() {
+        console.error("Audio error, advancing in 2 seconds...");
+        setTimeout(() => {
+          audioPlayer.onended();
+        }, 2000);
+      };
+
+      // Start from Surah 1 (Al-Fatihah)
+      async function init() {
+        currentVerses = await loadSurah(SURAHS[0].id);
+        playAyah();
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
+  </script>
+</body>
+</html>
