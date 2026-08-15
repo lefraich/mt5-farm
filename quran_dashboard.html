@@ -25,64 +25,6 @@
       overflow: hidden;
     }
 
-    /* ═══════ CLICK-TO-START OVERLAY ═══════ */
-    #start-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
-      background: radial-gradient(ellipse at center, #0a2e1f 0%, #010806 80%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 40px;
-      cursor: pointer;
-    }
-    #start-overlay.hidden { display: none; }
-
-    .start-bismillah {
-      font-family: 'Amiri Quran', serif;
-      font-size: clamp(2rem, 5vw, 4rem);
-      color: #d4af37;
-      text-shadow: 0 0 40px rgba(212,175,55,0.5);
-    }
-    .start-title {
-      font-family: 'Cairo', sans-serif;
-      font-size: clamp(1.4rem, 3vw, 2.4rem);
-      font-weight: 900;
-      color: #fff;
-      text-align: center;
-      line-height: 1.8;
-    }
-    .start-btn {
-      font-family: 'Cairo', sans-serif;
-      font-size: clamp(1.2rem, 2.5vw, 1.8rem);
-      font-weight: 800;
-      color: #010806;
-      background: linear-gradient(135deg, #d4af37, #f7d560, #d4af37);
-      border: none;
-      padding: 18px 60px;
-      border-radius: 50px;
-      cursor: pointer;
-      box-shadow: 0 0 40px rgba(212,175,55,0.5), 0 8px 30px rgba(0,0,0,0.5);
-      transition: transform 0.2s, box-shadow 0.2s;
-      animation: btn-glow 2s ease-in-out infinite;
-    }
-    .start-btn:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 60px rgba(212,175,55,0.7), 0 12px 40px rgba(0,0,0,0.5);
-    }
-    @keyframes btn-glow {
-      0%, 100% { box-shadow: 0 0 30px rgba(212,175,55,0.4), 0 8px 30px rgba(0,0,0,0.5); }
-      50% { box-shadow: 0 0 60px rgba(212,175,55,0.7), 0 8px 30px rgba(0,0,0,0.5); }
-    }
-    .start-reciter {
-      font-family: 'Cairo', sans-serif;
-      font-size: clamp(1rem, 2vw, 1.4rem);
-      font-weight: 700;
-      color: #a7f3d0;
-    }
-
     /* ═══════ MAIN CONTAINER ═══════ */
     .mushaf-container {
       width: 100vw;
@@ -348,17 +290,6 @@
 </head>
 <body>
 
-  <!-- ═══════ CLICK TO START OVERLAY ═══════ -->
-  <div id="start-overlay">
-    <div class="start-bismillah">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
-    <div class="start-title">
-      القرآن الكريم كاملاً<br>
-      بصوت الشيخ عبد الرحمن السديس
-    </div>
-    <button class="start-btn" id="start-btn">▶ ابدأ التلاوة</button>
-    <div class="start-reciter">تلاوة مرتلة من سورة الفاتحة إلى سورة الناس</div>
-  </div>
-
   <!-- ═══════ MAIN DASHBOARD ═══════ -->
   <div class="mushaf-container">
 
@@ -420,8 +351,6 @@
       let isPlaying = false;
 
       const audio      = document.getElementById('quran-audio');
-      const overlay     = document.getElementById('start-overlay');
-      const startBtn    = document.getElementById('start-btn');
       const surahNameEl = document.getElementById('surah-name');
       const surahTypeEl = document.getElementById('surah-type');
       const counterEl   = document.getElementById('ayah-counter');
@@ -509,30 +438,20 @@
         }, 3000);
       });
 
-      // ═══════ START MECHANISM ═══════
+      // ═══════ AUTO-START IMMEDIATELY ═══════
       function startRecitation() {
         if (isPlaying) return;
         isPlaying = true;
-        overlay.classList.add('hidden');
         displayAyah();
       }
 
-      // Click to start
-      startBtn.addEventListener('click', startRecitation);
-      overlay.addEventListener('click', startRecitation);
-
-      // Auto-start for kiosk/headless mode (GitHub Actions)
-      // Try auto-playing a silent sound; if it works, we're in autoplay-allowed mode
-      setTimeout(function() {
-        if (isPlaying) return;
-        const testAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
-        testAudio.play().then(function() {
-          // Autoplay allowed (kiosk mode) - start immediately
-          startRecitation();
-        }).catch(function() {
-          // Autoplay blocked (normal browser) - wait for click
-        });
-      }, 1000);
+      // Start as soon as the page loads - no click needed
+      // Chrome must be launched with --autoplay-policy=no-user-gesture-required
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startRecitation);
+      } else {
+        startRecitation();
+      }
 
     })();
   </script>
