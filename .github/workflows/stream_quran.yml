@@ -27,16 +27,16 @@ jobs:
       - uses: actions/checkout@v4
 
       # ────────────────────────────────────────────────────────────
-      # 1. Install Tools (FFmpeg, Chrome, Xvfb, PulseAudio)
+      # 1. Install Tools (FFmpeg, Chrome, Xvfb, PulseAudio, Fonts)
       # ────────────────────────────────────────────────────────────
       - name: "📦 Install Environment Tools"
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg xvfb xdotool pulseaudio alsa-utils fonts-noto-core fonts-noto-extra
+          sudo apt-get install -y ffmpeg xvfb xdotool pulseaudio alsa-utils google-chrome-stable fonts-noto-core fonts-noto-extra
           echo ">> Environment tools ready"
 
       # ────────────────────────────────────────────────────────────
-      # 2. Launch Virtual Display, PulseAudio, Chrome & Stream
+      # 2. Launch Display, PulseAudio, Chrome & Stream
       # ────────────────────────────────────────────────────────────
       - name: "🔴 LIVE Stream Holy Quran to YouTube"
         env:
@@ -61,12 +61,18 @@ jobs:
           export DISPLAY=:99
           sleep 2
 
-          # Start PulseAudio for Internal Browser Audio Capture
+          # Start PulseAudio
           pulseaudio -D --exit-idle-time=-1 || true
+          sleep 1
           pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=VirtualSink || true
           pactl set-default-sink VirtualSink || true
           pactl set-default-source VirtualSink.monitor || true
-          sleep 2
+          sleep 1
+
+          # Feed continuous silent clock to VirtualSink to guarantee zero FFmpeg starvation
+          ffmpeg -hide_banner -loglevel error -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -f pulse "VirtualSink" &
+          PULSE_CLOCK_PID=$!
+          sleep 1
 
           # Create Chrome Profile
           CHROME_DIR="/tmp/chrome-quran"
@@ -81,7 +87,12 @@ jobs:
           PREFS
           cat > "$CHROME_DIR/First Run" < /dev/null
 
-          DASHBOARD_URL="file://${GITHUB_WORKSPACE}/quran_dashboard.html"
+          # Serve dashboard via local HTTP to eliminate any file:// restrictions
+          python3 -m http.server 8080 --directory "$GITHUB_WORKSPACE" &
+          HTTP_PID=$!
+          sleep 2
+
+          DASHBOARD_URL="http://127.0.0.1:8080/quran_dashboard.html"
           echo ">> Opening: $DASHBOARD_URL"
 
           google-chrome \
@@ -112,7 +123,7 @@ jobs:
           fi
           sleep 2
 
-          # Trigger virtual click to guarantee audio unblocking
+          # Click in center to guarantee audio start
           xdotool mousemove 960 540 click 1 || true
           sleep 1
 
@@ -123,15 +134,12 @@ jobs:
           echo "  RTMP Target: rtmp://a.rtmp.youtube.com/live2/****"
           echo "============================================"
 
-          # Bulletproof FFmpeg with async audio resampler & continuous frame-clock
-          ffmpeg -hide_banner -loglevel info \
+          # FFmpeg capture X11 screen + PulseAudio -> YouTube RTMP
+          ffmpeg -hide_banner -loglevel warning \
             -f x11grab -draw_mouse 0 -video_size 1920x1080 -framerate 30 -i :99.0 \
             -f pulse -i VirtualSink.monitor \
-            -filter_complex "[0:v]fps=30,format=yuv420p[v];[1:a]aresample=async=1000:min_hard_comp=0.100000:first_pts=0[a]" \
-            -map "[v]" -map "[a]" \
             -c:v libx264 -preset veryfast -pix_fmt yuv420p \
             -b:v 4500k -maxrate 4500k -bufsize 9000k \
             -g 60 -keyint_min 60 -sc_threshold 0 \
             -c:a aac -b:a 192k -ar 44100 \
-            -flvflags no_duration_filesize \
             -f flv "$RTMP_URL"
