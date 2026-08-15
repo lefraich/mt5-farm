@@ -112,10 +112,14 @@ jobs:
           fi
           sleep 2
 
+          # Automatic virtual click to guarantee audio unblocking in all cases
+          xdotool mousemove 960 540 click 1 || true
+          sleep 1
+
           echo "============================================"
           echo "  📖 24/7 Holy Quran Live Stream"
           echo "  Reciter: Sheikh Abdul Rahman Al-Sudais"
-          echo "  Resolution : 1920x1080"
+          echo "  Resolution : 1920x1080 Full HD (16:9)"
           echo "  RTMP Target: rtmp://a.rtmp.youtube.com/live2/****"
           echo "============================================"
 
