@@ -27,16 +27,16 @@ jobs:
       - uses: actions/checkout@v4
 
       # ────────────────────────────────────────────────────────────
-      # 1. Install Tools (FFmpeg, Chrome, Xvfb, PulseAudio, Fonts)
+      # 1. Install Tools (FFmpeg, Chrome, Xvfb, Fonts)
       # ────────────────────────────────────────────────────────────
       - name: "📦 Install Environment Tools"
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg xvfb xdotool pulseaudio alsa-utils google-chrome-stable fonts-noto-core fonts-noto-extra
+          sudo apt-get install -y ffmpeg xvfb xdotool google-chrome-stable fonts-noto-core fonts-noto-extra
           echo ">> Environment tools ready"
 
       # ────────────────────────────────────────────────────────────
-      # 2. Launch Display, PulseAudio, Chrome & Stream
+      # 2. Launch Display, Chrome & Direct FFmpeg Stream
       # ────────────────────────────────────────────────────────────
       - name: "🔴 LIVE Stream Holy Quran to YouTube"
         env:
@@ -54,25 +54,12 @@ jobs:
             exit 1
           fi
 
-          # Use Backup RTMP URL - solves "Preparing stream" collision instantly
-          RTMP_URL="rtmp://b.rtmp.youtube.com/live2?backup=1/${STREAM_KEY}"
+          RTMP_URL="rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}"
 
           # Start Virtual X Display (1920x1080, 24bit)
           Xvfb :99 -screen 0 1920x1080x24 -ac +extension GLX +render -noreset &
           export DISPLAY=:99
           sleep 2
-
-          # Start PulseAudio
-          pulseaudio -D --exit-idle-time=-1 || true
-          sleep 1
-          pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description=VirtualSink || true
-          pactl set-default-sink VirtualSink || true
-          pactl set-default-source VirtualSink.monitor || true
-          sleep 1
-
-          # Feed continuous silent clock to VirtualSink
-          ffmpeg -hide_banner -loglevel error -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -f pulse "VirtualSink" &
-          sleep 1
 
           # Create Chrome Profile
           CHROME_DIR="/tmp/chrome-quran"
@@ -122,7 +109,7 @@ jobs:
           fi
           sleep 2
 
-          # Click in center to trigger audio
+          # Click in center to start dashboard
           xdotool mousemove 960 540 click 1 || true
           sleep 1
 
@@ -130,13 +117,14 @@ jobs:
           echo "  📖 24/7 Holy Quran Live Stream"
           echo "  Reciter: Sheikh Abdul Rahman Al-Sudais"
           echo "  Resolution : 1920x1080 Full HD (16:9)"
-          echo "  RTMP Target: $RTMP_URL"
+          echo "  Engine: Direct Video + Direct Audio Pipeline"
+          echo "  RTMP Target: rtmp://a.rtmp.youtube.com/live2/****"
           echo "============================================"
 
-          # FFmpeg capture X11 screen + PulseAudio -> YouTube Backup RTMP
+          # Direct Stream Pipeline: X11 1080p Screen + 114 Surahs Continuous Audio
           ffmpeg -hide_banner -loglevel warning \
             -f x11grab -draw_mouse 0 -video_size 1920x1080 -framerate 30 -i :99.0 \
-            -f pulse -i VirtualSink.monitor \
+            -f concat -safe 0 -protocol_whitelist file,http,https,tcp,tls -i "$GITHUB_WORKSPACE/quran_playlist.txt" \
             -c:v libx264 -preset superfast -pix_fmt yuv420p \
             -b:v 4500k -maxrate 4500k -bufsize 9000k \
             -g 60 -keyint_min 60 -sc_threshold 0 \
