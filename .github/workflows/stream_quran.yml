@@ -32,11 +32,28 @@ jobs:
       - name: "📦 Install Environment Tools"
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg xvfb xdotool google-chrome-stable fonts-noto-core fonts-noto-extra
+          sudo apt-get install -y ffmpeg xvfb google-chrome-stable fonts-noto-core fonts-noto-extra fonts-jetbrains-mono
           echo ">> Environment tools ready"
 
       # ────────────────────────────────────────────────────────────
-      # 2. Launch Display, Chrome & Direct FFmpeg Stream
+      # 2. Download Sheikh Al-Sudais Quran Audio
+      # ────────────────────────────────────────────────────────────
+      - name: "🎵 Download Sheikh Al-Sudais Recitation"
+        run: |
+          mkdir -p assets
+          echo ">> Downloading Sheikh Al-Sudais recitation files..."
+          curl -sL "https://server11.mp3quran.net/sds/001.mp3" -o assets/001.mp3
+          curl -sL "https://server11.mp3quran.net/sds/002.mp3" -o assets/002.mp3
+          curl -sL "https://server11.mp3quran.net/sds/036.mp3" -o assets/036.mp3
+          curl -sL "https://server11.mp3quran.net/sds/055.mp3" -o assets/055.mp3
+          curl -sL "https://server11.mp3quran.net/sds/067.mp3" -o assets/067.mp3
+
+          # Concatenate downloaded Surahs into continuous master audio
+          cat assets/001.mp3 assets/002.mp3 assets/036.mp3 assets/055.mp3 assets/067.mp3 > assets/quran.mp3
+          echo ">> Quran master audio prepared successfully: $(ls -lh assets/quran.mp3)"
+
+      # ────────────────────────────────────────────────────────────
+      # 3. Launch Web Dashboard & Stream Live via FFmpeg
       # ────────────────────────────────────────────────────────────
       - name: "🔴 LIVE Stream Holy Quran to YouTube"
         env:
@@ -54,77 +71,30 @@ jobs:
             exit 1
           fi
 
-          RTMP_URL="rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}"
+          RTMP_URL="rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
 
           # Start Virtual X Display (1920x1080, 24bit)
-          Xvfb :99 -screen 0 1920x1080x24 -ac +extension GLX +render -noreset &
+          Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
-          sleep 2
+          sleep 3
 
-          # Create Chrome Profile
-          CHROME_DIR="/tmp/chrome-quran"
-          mkdir -p "$CHROME_DIR/Default"
-          cat > "$CHROME_DIR/Default/Preferences" << 'PREFS'
-          {
-            "translate": {"enabled": false},
-            "translate_blocked_languages": ["ar","en","fr","es","de"],
-            "browser": {"has_seen_welcome_page": true, "check_default_browser": false},
-            "profile": {"default_content_setting_values": {"notifications": 2}}
-          }
-          PREFS
-          cat > "$CHROME_DIR/First Run" < /dev/null
-
-          # Serve dashboard via local HTTP
-          python3 -m http.server 8080 --directory "$GITHUB_WORKSPACE" &
-          sleep 2
-
-          DASHBOARD_URL="http://127.0.0.1:8080/quran_dashboard.html"
-          echo ">> Opening: $DASHBOARD_URL"
-
-          google-chrome \
-            --no-sandbox \
-            --disable-setuid-sandbox \
-            --no-first-run \
-            --no-default-browser-check \
-            --autoplay-policy=no-user-gesture-required \
-            --disable-translate \
-            --disable-features=Translate,TranslateUI,SearchEngineChoiceScreen,InfoBars \
-            --disable-infobars \
-            --force-device-scale-factor=1 \
-            --hide-scrollbars \
-            --kiosk \
-            --window-size=1920,1080 \
-            --window-position=0,0 \
-            --user-data-dir="$CHROME_DIR" \
-            "$DASHBOARD_URL" &
-
-          CHROME_PID=$!
-          sleep 6
-
-          # Force 1920x1080 resolution
-          WIN_ID=$(xdotool search --pid $CHROME_PID --name "" 2>/dev/null | head -n1 || true)
-          if [ -n "$WIN_ID" ]; then
-            xdotool windowsize "$WIN_ID" 1920 1080 2>/dev/null || true
-            xdotool windowmove "$WIN_ID" 0 0 2>/dev/null || true
-          fi
-          sleep 2
-
-          # Click in center to start dashboard
-          xdotool mousemove 960 540 click 1 || true
-          sleep 1
+          # Launch Chrome Fullscreen with quran_dashboard.html
+          DASHBOARD_PATH="file://$GITHUB_WORKSPACE/quran_dashboard.html"
+          echo ">> Launching Chrome with $DASHBOARD_PATH..."
+          google-chrome --no-sandbox --disable-setuid-sandbox --no-first-run --no-default-browser-check --disable-features=Translate --disable-search-engine-choice-screen --kiosk --window-size=1920,1080 --window-position=0,0 --user-data-dir=/tmp/chrome-profile "$DASHBOARD_PATH" &
+          sleep 5
 
           echo "============================================"
           echo "  📖 24/7 Holy Quran Live Stream"
           echo "  Reciter: Sheikh Abdul Rahman Al-Sudais"
-          echo "  Resolution : 1920x1080 Full HD (16:9)"
-          echo "  Engine: Direct Video + Direct Audio Pipeline"
-          echo "  RTMP Target: rtmp://a.rtmp.youtube.com/live2/****"
+          echo "  Target Resolution: 1920x1080 Full HD (16:9)"
+          echo "  RTMP: rtmp://a.rtmp.youtube.com/live2/****"
           echo "============================================"
 
-          # Direct Stream Pipeline: X11 1080p Screen + 114 Surahs Continuous Audio
+          # FFmpeg X11 Screen Capture + Audio Loop -> RTMP (Exact proven engine)
           ffmpeg -hide_banner -loglevel warning \
             -f x11grab -draw_mouse 0 -video_size 1920x1080 -framerate 30 -i :99.0 \
-            -f concat -safe 0 -protocol_whitelist file,http,https,tcp,tls -i "$GITHUB_WORKSPACE/quran_playlist.txt" \
+            -stream_loop -1 -i assets/quran.mp3 \
             -c:v libx264 -preset superfast -pix_fmt yuv420p \
             -b:v 4500k -maxrate 4500k -bufsize 9000k \
             -g 60 -keyint_min 60 -sc_threshold 0 \
