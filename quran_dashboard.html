@@ -24,6 +24,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      cursor: pointer;
     }
     .stage {
       width: 100vw;
@@ -293,7 +294,7 @@
     </footer>
   </div>
 
-  <audio id="player" preload="auto"></audio>
+  <audio id="player" preload="auto" playsinline></audio>
 
   <script>
     const SURAHS = [{"id": 1, "name_ar": "الفاتحة", "revelation_place": "مكية", "verses_count": 7, "bismillah_pre": false}, {"id": 2, "name_ar": "البقرة", "revelation_place": "مدنية", "verses_count": 286, "bismillah_pre": true}, {"id": 3, "name_ar": "آل عمران", "revelation_place": "مدنية", "verses_count": 200, "bismillah_pre": true}, {"id": 4, "name_ar": "النساء", "revelation_place": "مدنية", "verses_count": 176, "bismillah_pre": true}, {"id": 5, "name_ar": "المائدة", "revelation_place": "مدنية", "verses_count": 120, "bismillah_pre": true}, {"id": 6, "name_ar": "الأنعام", "revelation_place": "مكية", "verses_count": 165, "bismillah_pre": true}, {"id": 7, "name_ar": "الأعراف", "revelation_place": "مكية", "verses_count": 206, "bismillah_pre": true}, {"id": 8, "name_ar": "الأنفال", "revelation_place": "مدنية", "verses_count": 75, "bismillah_pre": true}, {"id": 9, "name_ar": "التوبة", "revelation_place": "مدنية", "verses_count": 129, "bismillah_pre": false}, {"id": 10, "name_ar": "يونس", "revelation_place": "مكية", "verses_count": 109, "bismillah_pre": true}, {"id": 11, "name_ar": "هود", "revelation_place": "مكية", "verses_count": 123, "bismillah_pre": true}, {"id": 12, "name_ar": "يوسف", "revelation_place": "مكية", "verses_count": 111, "bismillah_pre": true}, {"id": 13, "name_ar": "الرعد", "revelation_place": "مدنية", "verses_count": 43, "bismillah_pre": true}, {"id": 14, "name_ar": "ابراهيم", "revelation_place": "مكية", "verses_count": 52, "bismillah_pre": true}, {"id": 15, "name_ar": "الحجر", "revelation_place": "مكية", "verses_count": 99, "bismillah_pre": true}, {"id": 16, "name_ar": "النحل", "revelation_place": "مكية", "verses_count": 128, "bismillah_pre": true}, {"id": 17, "name_ar": "الإسراء", "revelation_place": "مكية", "verses_count": 111, "bismillah_pre": true}, {"id": 18, "name_ar": "الكهف", "revelation_place": "مكية", "verses_count": 110, "bismillah_pre": true}, {"id": 19, "name_ar": "مريم", "revelation_place": "مكية", "verses_count": 98, "bismillah_pre": true}, {"id": 20, "name_ar": "طه", "revelation_place": "مكية", "verses_count": 135, "bismillah_pre": true}, {"id": 21, "name_ar": "الأنبياء", "revelation_place": "مكية", "verses_count": 112, "bismillah_pre": true}, {"id": 22, "name_ar": "الحج", "revelation_place": "مدنية", "verses_count": 78, "bismillah_pre": true}, {"id": 23, "name_ar": "المؤمنون", "revelation_place": "مكية", "verses_count": 118, "bismillah_pre": true}, {"id": 24, "name_ar": "النور", "revelation_place": "مدنية", "verses_count": 64, "bismillah_pre": true}, {"id": 25, "name_ar": "الفرقان", "revelation_place": "مكية", "verses_count": 77, "bismillah_pre": true}, {"id": 26, "name_ar": "الشعراء", "revelation_place": "مكية", "verses_count": 227, "bismillah_pre": true}, {"id": 27, "name_ar": "النمل", "revelation_place": "مكية", "verses_count": 93, "bismillah_pre": true}, {"id": 28, "name_ar": "القصص", "revelation_place": "مكية", "verses_count": 88, "bismillah_pre": true}, {"id": 29, "name_ar": "العنكبوت", "revelation_place": "مكية", "verses_count": 69, "bismillah_pre": true}, {"id": 30, "name_ar": "الروم", "revelation_place": "مكية", "verses_count": 60, "bismillah_pre": true}, {"id": 31, "name_ar": "لقمان", "revelation_place": "مكية", "verses_count": 34, "bismillah_pre": true}, {"id": 32, "name_ar": "السجدة", "revelation_place": "مكية", "verses_count": 30, "bismillah_pre": true}, {"id": 33, "name_ar": "الأحزاب", "revelation_place": "مدنية", "verses_count": 73, "bismillah_pre": true}, {"id": 34, "name_ar": "سبإ", "revelation_place": "مكية", "verses_count": 54, "bismillah_pre": true}, {"id": 35, "name_ar": "فاطر", "revelation_place": "مكية", "verses_count": 45, "bismillah_pre": true}, {"id": 36, "name_ar": "يس", "revelation_place": "مكية", "verses_count": 83, "bismillah_pre": true}, {"id": 37, "name_ar": "الصافات", "revelation_place": "مكية", "verses_count": 182, "bismillah_pre": true}, {"id": 38, "name_ar": "ص", "revelation_place": "مكية", "verses_count": 88, "bismillah_pre": true}, {"id": 39, "name_ar": "الزمر", "revelation_place": "مكية", "verses_count": 75, "bismillah_pre": true}, {"id": 40, "name_ar": "غافر", "revelation_place": "مكية", "verses_count": 85, "bismillah_pre": true}, {"id": 41, "name_ar": "فصلت", "revelation_place": "مكية", "verses_count": 54, "bismillah_pre": true}, {"id": 42, "name_ar": "الشورى", "revelation_place": "مكية", "verses_count": 53, "bismillah_pre": true}, {"id": 43, "name_ar": "الزخرف", "revelation_place": "مكية", "verses_count": 89, "bismillah_pre": true}, {"id": 44, "name_ar": "الدخان", "revelation_place": "مكية", "verses_count": 59, "bismillah_pre": true}, {"id": 45, "name_ar": "الجاثية", "revelation_place": "مكية", "verses_count": 37, "bismillah_pre": true}, {"id": 46, "name_ar": "الأحقاف", "revelation_place": "مكية", "verses_count": 35, "bismillah_pre": true}, {"id": 47, "name_ar": "محمد", "revelation_place": "مدنية", "verses_count": 38, "bismillah_pre": true}, {"id": 48, "name_ar": "الفتح", "revelation_place": "مدنية", "verses_count": 29, "bismillah_pre": true}, {"id": 49, "name_ar": "الحجرات", "revelation_place": "مدنية", "verses_count": 18, "bismillah_pre": true}, {"id": 50, "name_ar": "ق", "revelation_place": "مكية", "verses_count": 45, "bismillah_pre": true}, {"id": 51, "name_ar": "الذاريات", "revelation_place": "مكية", "verses_count": 60, "bismillah_pre": true}, {"id": 52, "name_ar": "الطور", "revelation_place": "مكية", "verses_count": 49, "bismillah_pre": true}, {"id": 53, "name_ar": "النجم", "revelation_place": "مكية", "verses_count": 62, "bismillah_pre": true}, {"id": 54, "name_ar": "القمر", "revelation_place": "مكية", "verses_count": 55, "bismillah_pre": true}, {"id": 55, "name_ar": "الرحمن", "revelation_place": "مدنية", "verses_count": 78, "bismillah_pre": true}, {"id": 56, "name_ar": "الواقعة", "revelation_place": "مكية", "verses_count": 96, "bismillah_pre": true}, {"id": 57, "name_ar": "الحديد", "revelation_place": "مدنية", "verses_count": 29, "bismillah_pre": true}, {"id": 58, "name_ar": "المجادلة", "revelation_place": "مدنية", "verses_count": 22, "bismillah_pre": true}, {"id": 59, "name_ar": "الحشر", "revelation_place": "مدنية", "verses_count": 24, "bismillah_pre": true}, {"id": 60, "name_ar": "الممتحنة", "revelation_place": "مدنية", "verses_count": 13, "bismillah_pre": true}, {"id": 61, "name_ar": "الصف", "revelation_place": "مدنية", "verses_count": 14, "bismillah_pre": true}, {"id": 62, "name_ar": "الجمعة", "revelation_place": "مدنية", "verses_count": 11, "bismillah_pre": true}, {"id": 63, "name_ar": "المنافقون", "revelation_place": "مدنية", "verses_count": 11, "bismillah_pre": true}, {"id": 64, "name_ar": "التغابن", "revelation_place": "مدنية", "verses_count": 18, "bismillah_pre": true}, {"id": 65, "name_ar": "الطلاق", "revelation_place": "مدنية", "verses_count": 12, "bismillah_pre": true}, {"id": 66, "name_ar": "التحريم", "revelation_place": "مدنية", "verses_count": 12, "bismillah_pre": true}, {"id": 67, "name_ar": "الملك", "revelation_place": "مكية", "verses_count": 30, "bismillah_pre": true}, {"id": 68, "name_ar": "القلم", "revelation_place": "مكية", "verses_count": 52, "bismillah_pre": true}, {"id": 69, "name_ar": "الحاقة", "revelation_place": "مكية", "verses_count": 52, "bismillah_pre": true}, {"id": 70, "name_ar": "المعارج", "revelation_place": "مكية", "verses_count": 44, "bismillah_pre": true}, {"id": 71, "name_ar": "نوح", "revelation_place": "مكية", "verses_count": 28, "bismillah_pre": true}, {"id": 72, "name_ar": "الجن", "revelation_place": "مكية", "verses_count": 28, "bismillah_pre": true}, {"id": 73, "name_ar": "المزمل", "revelation_place": "مكية", "verses_count": 20, "bismillah_pre": true}, {"id": 74, "name_ar": "المدثر", "revelation_place": "مكية", "verses_count": 56, "bismillah_pre": true}, {"id": 75, "name_ar": "القيامة", "revelation_place": "مكية", "verses_count": 40, "bismillah_pre": true}, {"id": 76, "name_ar": "الانسان", "revelation_place": "مدنية", "verses_count": 31, "bismillah_pre": true}, {"id": 77, "name_ar": "المرسلات", "revelation_place": "مكية", "verses_count": 50, "bismillah_pre": true}, {"id": 78, "name_ar": "النبإ", "revelation_place": "مكية", "verses_count": 40, "bismillah_pre": true}, {"id": 79, "name_ar": "النازعات", "revelation_place": "مكية", "verses_count": 46, "bismillah_pre": true}, {"id": 80, "name_ar": "عبس", "revelation_place": "مكية", "verses_count": 42, "bismillah_pre": true}, {"id": 81, "name_ar": "التكوير", "revelation_place": "مكية", "verses_count": 29, "bismillah_pre": true}, {"id": 82, "name_ar": "الإنفطار", "revelation_place": "مكية", "verses_count": 19, "bismillah_pre": true}, {"id": 83, "name_ar": "المطففين", "revelation_place": "مكية", "verses_count": 36, "bismillah_pre": true}, {"id": 84, "name_ar": "الإنشقاق", "revelation_place": "مكية", "verses_count": 25, "bismillah_pre": true}, {"id": 85, "name_ar": "البروج", "revelation_place": "مكية", "verses_count": 22, "bismillah_pre": true}, {"id": 86, "name_ar": "الطارق", "revelation_place": "مكية", "verses_count": 17, "bismillah_pre": true}, {"id": 87, "name_ar": "الأعلى", "revelation_place": "مكية", "verses_count": 19, "bismillah_pre": true}, {"id": 88, "name_ar": "الغاشية", "revelation_place": "مكية", "verses_count": 26, "bismillah_pre": true}, {"id": 89, "name_ar": "الفجر", "revelation_place": "مكية", "verses_count": 30, "bismillah_pre": true}, {"id": 90, "name_ar": "البلد", "revelation_place": "مكية", "verses_count": 20, "bismillah_pre": true}, {"id": 91, "name_ar": "الشمس", "revelation_place": "مكية", "verses_count": 15, "bismillah_pre": true}, {"id": 92, "name_ar": "الليل", "revelation_place": "مكية", "verses_count": 21, "bismillah_pre": true}, {"id": 93, "name_ar": "الضحى", "revelation_place": "مكية", "verses_count": 11, "bismillah_pre": true}, {"id": 94, "name_ar": "الشرح", "revelation_place": "مكية", "verses_count": 8, "bismillah_pre": true}, {"id": 95, "name_ar": "التين", "revelation_place": "مكية", "verses_count": 8, "bismillah_pre": true}, {"id": 96, "name_ar": "العلق", "revelation_place": "مكية", "verses_count": 19, "bismillah_pre": true}, {"id": 97, "name_ar": "القدر", "revelation_place": "مكية", "verses_count": 5, "bismillah_pre": true}, {"id": 98, "name_ar": "البينة", "revelation_place": "مدنية", "verses_count": 8, "bismillah_pre": true}, {"id": 99, "name_ar": "الزلزلة", "revelation_place": "مدنية", "verses_count": 8, "bismillah_pre": true}, {"id": 100, "name_ar": "العاديات", "revelation_place": "مكية", "verses_count": 11, "bismillah_pre": true}, {"id": 101, "name_ar": "القارعة", "revelation_place": "مكية", "verses_count": 11, "bismillah_pre": true}, {"id": 102, "name_ar": "التكاثر", "revelation_place": "مكية", "verses_count": 8, "bismillah_pre": true}, {"id": 103, "name_ar": "العصر", "revelation_place": "مكية", "verses_count": 3, "bismillah_pre": true}, {"id": 104, "name_ar": "الهمزة", "revelation_place": "مكية", "verses_count": 9, "bismillah_pre": true}, {"id": 105, "name_ar": "الفيل", "revelation_place": "مكية", "verses_count": 5, "bismillah_pre": true}, {"id": 106, "name_ar": "قريش", "revelation_place": "مكية", "verses_count": 4, "bismillah_pre": true}, {"id": 107, "name_ar": "الماعون", "revelation_place": "مكية", "verses_count": 7, "bismillah_pre": true}, {"id": 108, "name_ar": "الكوثر", "revelation_place": "مكية", "verses_count": 3, "bismillah_pre": true}, {"id": 109, "name_ar": "الكافرون", "revelation_place": "مكية", "verses_count": 6, "bismillah_pre": true}, {"id": 110, "name_ar": "النصر", "revelation_place": "مدنية", "verses_count": 3, "bismillah_pre": true}, {"id": 111, "name_ar": "المسد", "revelation_place": "مكية", "verses_count": 5, "bismillah_pre": true}, {"id": 112, "name_ar": "الإخلاص", "revelation_place": "مكية", "verses_count": 4, "bismillah_pre": true}, {"id": 113, "name_ar": "الفلق", "revelation_place": "مكية", "verses_count": 5, "bismillah_pre": true}, {"id": 114, "name_ar": "الناس", "revelation_place": "مكية", "verses_count": 6, "bismillah_pre": true}];
@@ -319,7 +320,6 @@
       function loadSurah(surahIdx) {
         const surah = SURAHS[surahIdx];
         const sid = surah.id;
-        const totalAyahs = surah.verses_count;
 
         surahNameEl.textContent = `سورة ${surah.name_ar}`;
         surahTypeEl.textContent = surah.revelation_place;
@@ -337,9 +337,13 @@
 
         if (meta && meta.audio_url) {
           audio.src = meta.audio_url;
-          audio.play().catch(err => {
-            console.log("Audio waiting for user gesture / autoplay policy:", err);
-          });
+          audio.load();
+          const p = audio.play();
+          if (p && p.catch) {
+            p.catch(err => {
+              console.log("Auto-play waiting for user interaction / policy:", err);
+            });
+          }
         }
 
         // Prefetch next surah audio
@@ -366,7 +370,7 @@
         ayahTextEl.innerHTML = `${verseText} <span class="ayah-symbol">۝${toAr(ayahNum)}</span>`;
       }
 
-      // High-frequency millisecond sync as Sheikh Sudais recites continuously
+      // Real-time millisecond sync as Sheikh Sudais recites continuously
       audio.addEventListener('timeupdate', () => {
         if (!currentTimestamps || currentTimestamps.length === 0) return;
         const currentMs = audio.currentTime * 1000;
@@ -384,27 +388,24 @@
         }
       });
 
-      // When full continuous Surah audio finishes naturally -> move to next Surah smoothly
+      // Continuous loop: when current Surah finishes -> move to next Surah immediately
       audio.addEventListener('ended', () => {
         currentSurahIdx = (currentSurahIdx + 1) % SURAHS.length;
         loadSurah(currentSurahIdx);
       });
 
-      // Unlock on any user click locally if autoplay blocked
-      window.addEventListener('click', () => {
+      // Auto trigger audio play on any interaction anywhere
+      function unlockAudio() {
         if (audio.paused) {
           audio.play().catch(() => {});
         }
-      });
-      window.addEventListener('keydown', () => {
-        if (audio.paused) {
-          audio.play().catch(() => {});
-        }
-      });
+      }
+      window.addEventListener('click', unlockAudio);
+      window.addEventListener('touchstart', unlockAudio);
+      window.addEventListener('keydown', unlockAudio);
 
-      window.addEventListener('DOMContentLoaded', () => {
-        loadSurah(0);
-      });
+      // Execute immediately without waiting
+      loadSurah(0);
     })();
   </script>
 </body>
