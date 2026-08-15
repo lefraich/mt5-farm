@@ -48,9 +48,9 @@ jobs:
           curl -sL "https://server11.mp3quran.net/sds/055.mp3" -o assets/055.mp3
           curl -sL "https://server11.mp3quran.net/sds/067.mp3" -o assets/067.mp3
 
-          # Merge into clean audio file
-          ffmpeg -hide_banner -loglevel warning -i "concat:assets/001.mp3|assets/002.mp3|assets/036.mp3|assets/055.mp3|assets/067.mp3" -c:a aac -b:a 192k assets/quran.aac -y
-          echo ">> Master Quran audio stream ready: $(ls -lh assets/quran.aac)"
+          # Merge cleanly using FFmpeg concat protocol into MP3
+          ffmpeg -hide_banner -loglevel warning -i "concat:assets/001.mp3|assets/002.mp3|assets/036.mp3|assets/055.mp3|assets/067.mp3" -c copy assets/quran.mp3 -y
+          echo ">> Master Quran audio stream ready: $(ls -lh assets/quran.mp3)"
 
       # ────────────────────────────────────────────────────────────
       # 3. Launch Web Dashboard & Stream Live via FFmpeg
@@ -91,13 +91,12 @@ jobs:
           echo "  RTMP: rtmp://a.rtmp.youtube.com/live2/****"
           echo "============================================"
 
-          # FFmpeg Pure Live Broadcast (Exact working audio encoder)
+          # FFmpeg X11 Screen Capture + Audio Loop -> RTMP (Exact working engine)
           ffmpeg -hide_banner -loglevel warning \
             -f x11grab -draw_mouse 0 -video_size 1920x1080 -framerate 30 -i :99.0 \
-            -stream_loop -1 -i assets/quran.aac \
+            -stream_loop -1 -i assets/quran.mp3 \
             -c:v libx264 -preset superfast -pix_fmt yuv420p \
             -b:v 4500k -maxrate 4500k -bufsize 9000k \
             -g 60 -keyint_min 60 -sc_threshold 0 \
-            -c:a aac -b:a 192k -ar 44100 \
-            -flvflags no_duration_filesize \
+            -c:a aac -b:a 128k -ar 44100 \
             -f flv "$RTMP_URL"
