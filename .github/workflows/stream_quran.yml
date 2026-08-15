@@ -48,8 +48,8 @@ jobs:
           curl -sL "https://server11.mp3quran.net/sds/055.mp3" -o assets/055.mp3
           curl -sL "https://server11.mp3quran.net/sds/067.mp3" -o assets/067.mp3
 
-          # Merge into clean raw PCM/AAC stream file without container duration tags
-          ffmpeg -hide_banner -loglevel warning -i "concat:assets/001.mp3|assets/002.mp3|assets/036.mp3|assets/055.mp3|assets/067.mp3" -map_metadata -1 -c:a aac -b:a 192k assets/quran.aac -y
+          # Merge into clean audio file
+          ffmpeg -hide_banner -loglevel warning -i "concat:assets/001.mp3|assets/002.mp3|assets/036.mp3|assets/055.mp3|assets/067.mp3" -c:a aac -b:a 192k assets/quran.aac -y
           echo ">> Master Quran audio stream ready: $(ls -lh assets/quran.aac)"
 
       # ────────────────────────────────────────────────────────────
@@ -91,14 +91,13 @@ jobs:
           echo "  RTMP: rtmp://a.rtmp.youtube.com/live2/****"
           echo "============================================"
 
-          # FFmpeg Pure Live Broadcast (Raw AAC stream + -map_metadata -1)
+          # FFmpeg Pure Live Broadcast (Exact working audio encoder)
           ffmpeg -hide_banner -loglevel warning \
             -f x11grab -draw_mouse 0 -video_size 1920x1080 -framerate 30 -i :99.0 \
             -stream_loop -1 -i assets/quran.aac \
-            -map_metadata -1 \
             -c:v libx264 -preset superfast -pix_fmt yuv420p \
             -b:v 4500k -maxrate 4500k -bufsize 9000k \
             -g 60 -keyint_min 60 -sc_threshold 0 \
-            -c:a copy \
+            -c:a aac -b:a 192k -ar 44100 \
             -flvflags no_duration_filesize \
             -f flv "$RTMP_URL"
