@@ -344,15 +344,16 @@
     // ═══════════════════════════════════════════════════════════
 // QURAN RECITATION ENGINE v3 - Robust Audio + Fallback Timer
 // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// QURAN RECITATION ENGINE v4 - Audio-Synced Only (NO timers)
+// Verses advance ONLY when the reciter finishes each ayah
+// ═══════════════════════════════════════════════════════════
 (function() {
   "use strict";
 
   var surahIdx = 0;
   var ayahNum = 1;
   var started = false;
-  var audioCtx = null;
-  var fallbackTimer = null;
-  var currentAudio = null;
 
   var surahNameEl = document.getElementById('surah-name');
   var surahTypeEl = document.getElementById('surah-type');
@@ -367,126 +368,105 @@
     });
   }
 
-  // Audio URL builder
+  // Build audio URL for EveryAyah CDN (Al-Sudais 192kbps)
   function audioUrl(sId, aNum) {
     var s = String(sId); while(s.length < 3) s = '0' + s;
     var a = String(aNum); while(a.length < 3) a = '0' + a;
     return 'https://everyayah.com/data/Abdurrahmaan_As-Sudais_192kbps/' + s + a + '.mp3';
   }
 
-  // ═══════ ROBUST AUDIO PLAYER ═══════
-  function playAudio(url, onDone) {
-    // Kill previous
-    if (currentAudio) {
-      try { currentAudio.pause(); currentAudio.removeAttribute('src'); currentAudio.load(); } catch(e) {}
-    }
-    if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
+  // ═══════ SINGLE AUDIO ELEMENT - reused for all ayahs ═══════
+  var audio = document.createElement('audio');
+  audio.preload = 'auto';
 
-    var a = new Audio();
-    currentAudio = a;
-    a.preload = 'auto';
-    var done = false;
+  // When the reciter finishes this ayah -> move to next
+  audio.addEventListener('ended', function() {
+    advanceToNext();
+  });
 
-    function finish() {
-      if (done) return;
-      done = true;
-      if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
-      onDone();
-    }
-
-    // Audio ended naturally = perfect sync
-    a.addEventListener('ended', finish);
-
-    // Audio error = advance after 6 seconds
-    a.addEventListener('error', function() {
-      console.warn('Audio load error, advancing in 6s');
-      fallbackTimer = setTimeout(finish, 6000);
-    });
-
-    // Set source and try to play
-    a.src = url;
-
-    function tryPlay() {
-      var p = a.play();
-      if (p && typeof p.then === 'function') {
-        p.then(function() {
-          // Playing! Set a safety timeout (max 5 min per ayah)
-          if (fallbackTimer) clearTimeout(fallbackTimer);
-          fallbackTimer = setTimeout(function() { if (!done) finish(); }, 300000);
-          console.log('Playing: ' + url.split('/').pop());
-        }).catch(function(err) {
-          console.warn('Play blocked: ' + err.message);
-          // Set fallback: advance after 8 seconds even without audio
-          if (fallbackTimer) clearTimeout(fallbackTimer);
-          fallbackTimer = setTimeout(function() { if (!done) finish(); }, 8000);
-        });
-      } else {
-        // Old browser, no promise - set fallback
-        if (fallbackTimer) clearTimeout(fallbackTimer);
-        fallbackTimer = setTimeout(function() { if (!done) finish(); }, 8000);
-      }
-    }
-
-    tryPlay();
-
-    // Retry after 1.5s if still not playing
+  // On network/load error -> retry same ayah after 3 seconds
+  audio.addEventListener('error', function() {
+    console.error('Audio load error, retrying same ayah in 3s...');
     setTimeout(function() {
-      if (!done && a.paused) {
-        console.log('Retrying play...');
-        tryPlay();
-      }
-    }, 1500);
+      loadAndPlayCurrentAyah();
+    }, 3000);
+  });
+
+  // ═══════ LOAD AND PLAY CURRENT AYAH ═══════
+  function loadAndPlayCurrentAyah() {
+    var surah = SURAHS[surahIdx];
+    var sid = surah.id;
+    var url = audioUrl(sid, ayahNum);
+
+    audio.src = url;
+    audio.load();
+
+    var p = audio.play();
+    if (p && typeof p.then === 'function') {
+      p.catch(function(err) {
+        console.warn('Play attempt failed: ' + err.message + ' - retrying in 2s');
+        setTimeout(function() {
+          audio.play().catch(function(err2) {
+            console.warn('Retry failed: ' + err2.message + ' - retrying in 3s');
+            setTimeout(function() {
+              audio.play().catch(function() {});
+            }, 3000);
+          });
+        }, 2000);
+      });
+    }
   }
 
-  // ═══════ AudioContext unlock ═══════
-  function tryUnlock() {
-    if (!audioCtx) {
-      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
-    }
-    if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume().catch(function(){});
-    }
-  }
-
-  // Unlock on ANY user interaction
-  function onInteract() {
-    tryUnlock();
-    if (currentAudio && currentAudio.paused) {
-      currentAudio.play().catch(function(){});
-    }
-  }
-  document.addEventListener('click', onInteract);
-  document.addEventListener('touchstart', onInteract);
-  document.addEventListener('keydown', onInteract);
-
-  // ═══════ DISPLAY CURRENT AYAH ═══════
-  function displayAyah() {
+  // ═══════ DISPLAY CURRENT AYAH ON SCREEN ═══════
+  function displayCurrentAyah() {
     var surah = SURAHS[surahIdx];
     var sid = surah.id;
     var vc = surah.verses_count;
 
-    // Header updates
+    // Update header
     surahNameEl.textContent = '\u0633\u0648\u0631\u0629 ' + surah.name_ar;
     surahTypeEl.textContent = surah.revelation_place === 'makkah' ? '\u0645\u0643\u064a\u0629' : '\u0645\u062f\u0646\u064a\u0629';
     counterEl.textContent = '\u0627\u0644\u0622\u064a\u0629 ' + toAr(ayahNum) + ' \u0645\u0646 ' + toAr(vc);
 
-    // Bismillah visibility
+    // Bismillah: hide for Surah 1 (Bismillah IS verse 1) and Surah 9 (no Bismillah)
     bismillahEl.style.opacity = (sid === 1 || sid === 9) ? '0' : '1';
 
-    // Verse text from embedded data
+    // Verse text from embedded data (verified Uthmani script)
     var key = sid + ':' + ayahNum;
     var text = ALL_VERSES[key] || '';
     ayahTextEl.innerHTML = text + ' <span class="ayah-num">\uFD3F' + toAr(ayahNum) + '\uFD3E</span>';
+  }
 
-    // Play audio for this ayah
-    playAudio(audioUrl(sid, ayahNum), function() {
-      advanceToNext();
-    });
+  // ═══════ ADVANCE TO NEXT AYAH (only called when audio ends) ═══════
+  function advanceToNext() {
+    var surah = SURAHS[surahIdx];
+    if (ayahNum < surah.verses_count) {
+      ayahNum++;
+    } else {
+      // Move to next surah (loop to Al-Fatihah after An-Nas)
+      surahIdx = (surahIdx + 1) % SURAHS.length;
+      ayahNum = 1;
+    }
 
-    // Prefetch next audio file
-    var nSid = sid, nAyah = ayahNum + 1;
-    if (nAyah > vc) {
-      nSid = (surahIdx + 1 < SURAHS.length) ? SURAHS[surahIdx + 1].id : SURAHS[0].id;
+    // Smooth text transition
+    ayahTextEl.style.opacity = '0';
+    setTimeout(function() {
+      displayCurrentAyah();
+      loadAndPlayCurrentAyah();
+      ayahTextEl.style.opacity = '1';
+    }, 300);
+
+    // Prefetch next ayah audio
+    prefetchNext();
+  }
+
+  // ═══════ PREFETCH NEXT AUDIO ═══════
+  function prefetchNext() {
+    var surah = SURAHS[surahIdx];
+    var nSid = surah.id, nAyah = ayahNum + 1;
+    if (nAyah > surah.verses_count) {
+      var nextIdx = (surahIdx + 1) % SURAHS.length;
+      nSid = SURAHS[nextIdx].id;
       nAyah = 1;
     }
     var link = document.createElement('link');
@@ -495,31 +475,16 @@
     document.head.appendChild(link);
   }
 
-  // ═══════ ADVANCE TO NEXT AYAH ═══════
-  function advanceToNext() {
-    var surah = SURAHS[surahIdx];
-    if (ayahNum < surah.verses_count) {
-      ayahNum++;
-    } else {
-      surahIdx = (surahIdx + 1) % SURAHS.length;
-      ayahNum = 1;
-    }
-    // Smooth transition
-    ayahTextEl.style.opacity = '0';
-    setTimeout(function() {
-      displayAyah();
-      ayahTextEl.style.opacity = '1';
-    }, 300);
-  }
-
-  // ═══════ AUTO-START ═══════
+  // ═══════ START ═══════
   function begin() {
     if (started) return;
     started = true;
-    tryUnlock();
-    displayAyah();
+    displayCurrentAyah();
+    loadAndPlayCurrentAyah();
+    prefetchNext();
   }
 
+  // Auto-start immediately on page load
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', begin);
   } else {
