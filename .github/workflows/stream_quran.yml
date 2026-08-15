@@ -41,16 +41,16 @@ jobs:
       - name: "🎵 Download Sheikh Al-Sudais Recitation"
         run: |
           mkdir -p assets
-          echo ">> Downloading Sheikh Al-Sudais recitation files..."
+          echo ">> Downloading Sheikh Al-Sudais recitation..."
           curl -sL "https://server11.mp3quran.net/sds/001.mp3" -o assets/001.mp3
           curl -sL "https://server11.mp3quran.net/sds/002.mp3" -o assets/002.mp3
           curl -sL "https://server11.mp3quran.net/sds/036.mp3" -o assets/036.mp3
           curl -sL "https://server11.mp3quran.net/sds/055.mp3" -o assets/055.mp3
           curl -sL "https://server11.mp3quran.net/sds/067.mp3" -o assets/067.mp3
 
-          # Concatenate downloaded Surahs into continuous master audio
-          cat assets/001.mp3 assets/002.mp3 assets/036.mp3 assets/055.mp3 assets/067.mp3 > assets/quran.mp3
-          echo ">> Quran master audio prepared successfully: $(ls -lh assets/quran.mp3)"
+          # Merge cleanly using FFmpeg concat protocol
+          ffmpeg -hide_banner -loglevel warning -i "concat:assets/001.mp3|assets/002.mp3|assets/036.mp3|assets/055.mp3|assets/067.mp3" -c copy assets/quran.mp3 -y
+          echo ">> Master Quran audio ready: $(ls -lh assets/quran.mp3)"
 
       # ────────────────────────────────────────────────────────────
       # 3. Launch Web Dashboard & Stream Live via FFmpeg
@@ -91,7 +91,7 @@ jobs:
           echo "  RTMP: rtmp://a.rtmp.youtube.com/live2/****"
           echo "============================================"
 
-          # FFmpeg X11 Screen Capture + Audio Loop -> RTMP (Exact proven engine)
+          # FFmpeg X11 Screen Capture + Continuous Audio Loop -> YouTube RTMP
           ffmpeg -hide_banner -loglevel warning \
             -f x11grab -draw_mouse 0 -video_size 1920x1080 -framerate 30 -i :99.0 \
             -stream_loop -1 -i assets/quran.mp3 \
