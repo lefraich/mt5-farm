@@ -54,7 +54,8 @@ jobs:
             exit 1
           fi
 
-          RTMP_URL="rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}"
+          # Use Backup RTMP URL - solves "Preparing stream" collision instantly
+          RTMP_URL="rtmp://b.rtmp.youtube.com/live2?backup=1/${STREAM_KEY}"
 
           # Start Virtual X Display (1920x1080, 24bit)
           Xvfb :99 -screen 0 1920x1080x24 -ac +extension GLX +render -noreset &
@@ -69,9 +70,8 @@ jobs:
           pactl set-default-source VirtualSink.monitor || true
           sleep 1
 
-          # Feed continuous silent clock to VirtualSink to guarantee zero FFmpeg starvation
+          # Feed continuous silent clock to VirtualSink
           ffmpeg -hide_banner -loglevel error -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -f pulse "VirtualSink" &
-          PULSE_CLOCK_PID=$!
           sleep 1
 
           # Create Chrome Profile
@@ -87,9 +87,8 @@ jobs:
           PREFS
           cat > "$CHROME_DIR/First Run" < /dev/null
 
-          # Serve dashboard via local HTTP to eliminate any file:// restrictions
+          # Serve dashboard via local HTTP
           python3 -m http.server 8080 --directory "$GITHUB_WORKSPACE" &
-          HTTP_PID=$!
           sleep 2
 
           DASHBOARD_URL="http://127.0.0.1:8080/quran_dashboard.html"
@@ -123,7 +122,7 @@ jobs:
           fi
           sleep 2
 
-          # Click in center to guarantee audio start
+          # Click in center to trigger audio
           xdotool mousemove 960 540 click 1 || true
           sleep 1
 
@@ -131,14 +130,14 @@ jobs:
           echo "  📖 24/7 Holy Quran Live Stream"
           echo "  Reciter: Sheikh Abdul Rahman Al-Sudais"
           echo "  Resolution : 1920x1080 Full HD (16:9)"
-          echo "  RTMP Target: rtmp://a.rtmp.youtube.com/live2/****"
+          echo "  RTMP Target: $RTMP_URL"
           echo "============================================"
 
-          # FFmpeg capture X11 screen + PulseAudio -> YouTube RTMP
+          # FFmpeg capture X11 screen + PulseAudio -> YouTube Backup RTMP
           ffmpeg -hide_banner -loglevel warning \
             -f x11grab -draw_mouse 0 -video_size 1920x1080 -framerate 30 -i :99.0 \
             -f pulse -i VirtualSink.monitor \
-            -c:v libx264 -preset veryfast -pix_fmt yuv420p \
+            -c:v libx264 -preset superfast -pix_fmt yuv420p \
             -b:v 4500k -maxrate 4500k -bufsize 9000k \
             -g 60 -keyint_min 60 -sc_threshold 0 \
             -c:a aac -b:a 192k -ar 44100 \
