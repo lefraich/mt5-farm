@@ -112,7 +112,7 @@ jobs:
           fi
           sleep 2
 
-          # Automatic virtual click to guarantee audio unblocking in all cases
+          # Trigger virtual click to guarantee audio unblocking
           xdotool mousemove 960 540 click 1 || true
           sleep 1
 
@@ -123,12 +123,15 @@ jobs:
           echo "  RTMP Target: rtmp://a.rtmp.youtube.com/live2/****"
           echo "============================================"
 
-          # FFmpeg capture X11 screen + PulseAudio (Chrome Sound) -> RTMP
-          ffmpeg -hide_banner -loglevel warning \
+          # Bulletproof FFmpeg with async audio resampler & continuous frame-clock
+          ffmpeg -hide_banner -loglevel info \
             -f x11grab -draw_mouse 0 -video_size 1920x1080 -framerate 30 -i :99.0 \
             -f pulse -i VirtualSink.monitor \
-            -c:v libx264 -preset superfast -pix_fmt yuv420p \
+            -filter_complex "[0:v]fps=30,format=yuv420p[v];[1:a]aresample=async=1000:min_hard_comp=0.100000:first_pts=0[a]" \
+            -map "[v]" -map "[a]" \
+            -c:v libx264 -preset veryfast -pix_fmt yuv420p \
             -b:v 4500k -maxrate 4500k -bufsize 9000k \
             -g 60 -keyint_min 60 -sc_threshold 0 \
             -c:a aac -b:a 192k -ar 44100 \
+            -flvflags no_duration_filesize \
             -f flv "$RTMP_URL"
