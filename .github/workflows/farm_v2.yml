@@ -224,30 +224,6 @@ jobs:
           net localgroup administrators trader /add
           Write-Output "RDP enabled - user trader (admin) created"
 
-      - name: Start Public Tunnel (Bore.pub fallback)
-        shell: pwsh
-        run: |
-          Invoke-WebRequest "https://github.com/ekzhang/bore/releases/download/v0.5.2/bore-v0.5.2-x86_64-pc-windows-msvc.zip" -OutFile bore.zip -UseBasicParsing
-          Expand-Archive bore.zip -DestinationPath . -Force
-          Remove-Item bore.zip
-          Start-Process -FilePath ".\bore.exe" -ArgumentList "local 3389 --to bore.pub" -NoNewWindow -RedirectStandardOutput bore_out.log -RedirectStandardError bore_err.log
-          $address = $null
-          $try = 0
-          while ($try -lt 20 -and -not $address) {
-            Start-Sleep -Seconds 2
-            $try++
-            if (Test-Path "bore_out.log") {
-              $content = Get-Content "bore_out.log" -Raw -ErrorAction SilentlyContinue
-              if ($content) {
-                $match = [regex]::Match($content, "bore\.pub:(\d+)")
-                if ($match.Success) { $address = "bore.pub:" + $match.Groups[1].Value; break }
-              }
-            }
-          }
-          Write-Output "BORE_RDP=$address"
-          if ($address) {
-            Write-Output "**PUBLIC RDP (Bore Tunnel):** `$address`" >> $env:GITHUB_STEP_SUMMARY
-          }
 
       - name: Install MetaTrader 5
         shell: pwsh
