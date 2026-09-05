@@ -1,0 +1,24 @@
+﻿name: Farm Watchdog
+
+on:
+  schedule:
+    - cron: "0 */5 * * *"
+  workflow_dispatch:
+
+jobs:
+  rerun:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Re-dispatch farm if KEEP_FARM marker exists
+        env:
+          GH_TOKEN: ${{ secrets.FARM_PAT }}
+        shell: bash
+        run: |
+          if [ -f KEEP_FARM ]; then
+            echo ">> KEEP_FARM found -> dispatching MT5 Agent Farm v2"
+            gh workflow run "MT5 Agent Farm v2" -f agent_count=20
+          else
+            echo ">> KEEP_FARM not present -> farm stays stopped"
+          fi
