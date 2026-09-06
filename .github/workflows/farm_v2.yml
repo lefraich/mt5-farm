@@ -243,18 +243,31 @@ jobs:
         run: |
           $ts = "C:\Program Files\Tailscale\tailscale.exe"
           $status = & $ts status
-          $names = $status | Select-String "^100\.\d+\.\d+\.\d+\s+agent-" | Where-Object { $_ -notmatch "offline" } | ForEach-Object { ($_ -split "\s+")[1] }
-          $lines = @()
-          foreach ($name in $names) {
+          $agentLines = $status | Select-String "^100\.\d+\.\d+\.\d+\s+agent-" | Where-Object { $_ -notmatch "offline" }
+          $lines = @(
+            "# MetaTester 5 Strategy Tester Agents",
+            "# Copyright 2000-2026, MetaQuotes Ltd.",
+            "#",
+            "# Name; Address:port; Password; Description; Enable",
+            "#"
+          )
+          foreach ($l in $agentLines) {
+            $f = ($l.Line ? $l.Line : $l.ToString()) -split '\s+'
+            $aIp = $f[0]
+            $aName = $f[1]
             for ($p = 3000; $p -le 3003; $p++) {
-              $lines += "$name-$p;$name`:$p;Test12345!;GitHub farm runner (live);1"
+              $lines += "$aName-$p; $aIp`:$p; Test12345!; GitHub farm runner (live); 1"
             }
           }
           $dest = "C:\Users\Public\Desktop\agents.mt5"
-          [System.IO.File]::WriteAllLines($dest, $lines, (New-Object System.Text.UTF8Encoding($false)))
-          Write-Output "agents.mt5 -> $dest ($($lines.Count) entries)"
-          Write-Output "agents: $($names -join ', ')"
-
+          [System.IO.File]::WriteAllLines($dest, $lines, [System.Text.Encoding]::Unicode)
+          Write-Output "agents.mt5 -> $dest ($($lines.Count) entries, UTF-16LE Unicode)"
+          Write-Output "Live runners: $($agentLines.Count)"
+          # Auto-copy to any installed MT5 Terminal config folders
+          Get-ChildItem -Path "C:\Users" -Filter "Config" -Recurse -Directory -ErrorAction SilentlyContinue | Where-Object { Test-Path (Join-Path $_.FullName "common.ini") } | ForEach-Object {
+            Copy-Item $dest (Join-Path $_.FullName "agents.mt5") -Force -ErrorAction SilentlyContinue
+            Write-Output "Auto-copied agents.mt5 to MT5 Config: $($_.FullName)"
+          }
       - name: Keep alive + self-heal (master)
         shell: pwsh
         env:
@@ -265,15 +278,26 @@ jobs:
             Start-Sleep -Seconds 900
             Write-Output "[$((Get-Date).ToString('HH:mm:ss'))] master alive"
             $status = & $ts status
-            $names = $status | Select-String "^100\.\d+\.\d+\.\d+\s+agent-" | Where-Object { $_ -notmatch "offline" } | ForEach-Object { ($_ -split "\s+")[1] }
-            $lines = @()
-            foreach ($name in $names) {
+            $agentLines = $status | Select-String "^100\.\d+\.\d+\.\d+\s+agent-" | Where-Object { $_ -notmatch "offline" }
+            $lines = @(
+              "# MetaTester 5 Strategy Tester Agents",
+              "# Copyright 2000-2026, MetaQuotes Ltd.",
+              "#",
+              "# Name; Address:port; Password; Description; Enable",
+              "#"
+            )
+            foreach ($l in $agentLines) {
+              $f = ($l.Line ? $l.Line : $l.ToString()) -split '\s+'
+              $aIp = $f[0]
+              $aName = $f[1]
               for ($p = 3000; $p -le 3003; $p++) {
-                $lines += "$name-$p;$name`:$p;Test12345!;GitHub farm runner (live);1"
+                $lines += "$aName-$p; $aIp`:$p; Test12345!; GitHub farm runner (live); 1"
               }
             }
-            [System.IO.File]::WriteAllLines("C:\Users\Public\Desktop\agents.mt5", $lines, (New-Object System.Text.UTF8Encoding($false)))
-            Write-Output "agents.mt5 refreshed: $($lines.Count) entries ($($names.Count) agents online)"
+            [System.IO.File]::WriteAllLines("C:\Users\Public\Desktop\agents.mt5", $lines, [System.Text.Encoding]::Unicode)
+            Get-ChildItem -Path "C:\Users" -Filter "Config" -Recurse -Directory -ErrorAction SilentlyContinue | Where-Object { Test-Path (Join-Path $_.FullName "common.ini") } | ForEach-Object {
+              Copy-Item "C:\Users\Public\Desktop\agents.mt5" (Join-Path $_.FullName "agents.mt5") -Force -ErrorAction SilentlyContinue
+            }
             $tsSvc = Get-Service -Name Tailscale -ErrorAction SilentlyContinue
             if (-not $tsSvc -or $tsSvc.Status -ne "Running") {
               Write-Output ">> tailscale down, rejoining as master-1"
