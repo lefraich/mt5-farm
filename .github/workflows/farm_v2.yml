@@ -244,29 +244,29 @@ jobs:
           $ts = "C:\Program Files\Tailscale\tailscale.exe"
           $status = & $ts status
           $agentLines = $status | Select-String "^100\.\d+\.\d+\.\d+\s+agent-" | Where-Object { $_ -notmatch "offline" }
-          $lines = @(
-            "# MetaTester 5 Strategy Tester Agents",
-            "# Copyright 2000-2026, MetaQuotes Ltd.",
-            "#",
-            "# Name; Address:port; Password; Description; Enable",
-            "#"
-          )
+          $lines = @()
           foreach ($l in $agentLines) {
             $f = ($l.Line ? $l.Line : $l.ToString()) -split '\s+'
             $aIp = $f[0]
-            $aName = $f[1]
+            $aRaw = $f[1]
+            $parts = $aRaw -split '-'
+            $cleanName = if ($parts.Count -gt 1 -and [int]::TryParse($parts[1], [ref]$null)) { ("Agent{0:D2}" -f [int]$parts[1]) } else { $aRaw }
             for ($p = 3000; $p -le 3003; $p++) {
-              $lines += "$aName-$p; $aIp`:$p; Test12345!; GitHub farm runner (live); 1"
+              $lines += "$cleanName-$p;$aIp`:$p;Test12345!;GitHub Farm;1"
             }
           }
-          $dest = "C:\Users\Public\Desktop\agents.mt5"
-          [System.IO.File]::WriteAllLines($dest, $lines, [System.Text.Encoding]::Unicode)
-          Write-Output "agents.mt5 -> $dest ($($lines.Count) entries, UTF-16LE Unicode)"
-          Write-Output "Live runners: $($agentLines.Count)"
-          # Auto-copy to any installed MT5 Terminal config folders
+          $destPublic = "C:\Users\Public\Desktop\agents.mt5"
+          $destTrader = "C:\Users\trader\Desktop\agents.mt5"
+          [System.IO.File]::WriteAllLines($destPublic, $lines, [System.Text.Encoding]::Unicode)
+          if (Test-Path "C:\Users\trader\Desktop") {
+            [System.IO.File]::WriteAllLines($destTrader, $lines, [System.Text.Encoding]::Unicode)
+          }
+          Write-Output "agents.mt5 -> Generated $($lines.Count) agents in official MT5 format (UTF-16LE, NO spaces, NO comments)"
+          
+          # Auto-copy to any MT5 Terminal config folders
           Get-ChildItem -Path "C:\Users" -Filter "Config" -Recurse -Directory -ErrorAction SilentlyContinue | Where-Object { Test-Path (Join-Path $_.FullName "common.ini") } | ForEach-Object {
-            Copy-Item $dest (Join-Path $_.FullName "agents.mt5") -Force -ErrorAction SilentlyContinue
-            Write-Output "Auto-copied agents.mt5 to MT5 Config: $($_.FullName)"
+            Copy-Item $destPublic (Join-Path $_.FullName "agents.mt5") -Force -ErrorAction SilentlyContinue
+            Write-Output "Auto-copied to MT5 Config: $($_.FullName)"
           }
       - name: Keep alive + self-heal (master)
         shell: pwsh
@@ -279,22 +279,21 @@ jobs:
             Write-Output "[$((Get-Date).ToString('HH:mm:ss'))] master alive"
             $status = & $ts status
             $agentLines = $status | Select-String "^100\.\d+\.\d+\.\d+\s+agent-" | Where-Object { $_ -notmatch "offline" }
-            $lines = @(
-              "# MetaTester 5 Strategy Tester Agents",
-              "# Copyright 2000-2026, MetaQuotes Ltd.",
-              "#",
-              "# Name; Address:port; Password; Description; Enable",
-              "#"
-            )
+            $lines = @()
             foreach ($l in $agentLines) {
               $f = ($l.Line ? $l.Line : $l.ToString()) -split '\s+'
               $aIp = $f[0]
-              $aName = $f[1]
+              $aRaw = $f[1]
+              $parts = $aRaw -split '-'
+              $cleanName = if ($parts.Count -gt 1 -and [int]::TryParse($parts[1], [ref]$null)) { ("Agent{0:D2}" -f [int]$parts[1]) } else { $aRaw }
               for ($p = 3000; $p -le 3003; $p++) {
-                $lines += "$aName-$p; $aIp`:$p; Test12345!; GitHub farm runner (live); 1"
+                $lines += "$cleanName-$p;$aIp`:$p;Test12345!;GitHub Farm;1"
               }
             }
             [System.IO.File]::WriteAllLines("C:\Users\Public\Desktop\agents.mt5", $lines, [System.Text.Encoding]::Unicode)
+            if (Test-Path "C:\Users\trader\Desktop") {
+              [System.IO.File]::WriteAllLines("C:\Users\trader\Desktop\agents.mt5", $lines, [System.Text.Encoding]::Unicode)
+            }
             Get-ChildItem -Path "C:\Users" -Filter "Config" -Recurse -Directory -ErrorAction SilentlyContinue | Where-Object { Test-Path (Join-Path $_.FullName "common.ini") } | ForEach-Object {
               Copy-Item "C:\Users\Public\Desktop\agents.mt5" (Join-Path $_.FullName "agents.mt5") -Force -ErrorAction SilentlyContinue
             }
