@@ -200,8 +200,17 @@ jobs:
           $ErrorActionPreference = "Stop"
           Invoke-WebRequest "https://pkgs.tailscale.com/stable/tailscale-setup-latest-amd64.msi" -OutFile ts.msi
           Start-Process msiexec -ArgumentList "/i","$PWD\ts.msi","/qn","/norestart" -Wait
+          
+          # Enable UnattendedMode policy in Registry (system-wide, never user-bound)
+          New-Item -Path "HKLM:\SOFTWARE\Policies\Tailscale" -Force -ErrorAction SilentlyContinue | Out-Null
+          Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Tailscale" -Name "UnattendedMode" -Value "always" -Force
+          
           $ts = "C:\Program Files\Tailscale\tailscale.exe"
-          & $ts up --authkey=$env:TS_AUTHKEY --hostname="master-1"
+          & $ts up --authkey=$env:TS_AUTHKEY --hostname="master-1" --unattended
+          
+          # Terminate any interactive tray icon started by installer under runneradmin
+          taskkill /F /IM tailscale-ipn.exe 2>$null
+          
           Start-Sleep -Seconds 6
           $ip = (& $ts ip -4 | Select-Object -First 1).Trim()
           Write-Output "MASTER READY"
@@ -273,6 +282,44 @@ jobs:
             Write-Output "Auto-copied to MT5 Config: $($_.FullName)"
           }
 
+      - name: Pre-install AutoClaw, Node.js v24 and OpenClaw
+        shell: pwsh
+        run: |
+          Write-Output "=== [1/4] Updating Node.js to v24 LTS ==="
+          Invoke-WebRequest "https://nodejs.org/dist/v24.21.0/node-v24.21.0-x64.msi" -OutFile "$env:TEMP\node24.msi"
+          Start-Process msiexec.exe -ArgumentList "/i `"$env:TEMP\node24.msi`" /qn /norestart" -Wait
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+
+          Write-Output "=== [2/4] Downloading AutoClaw Desktop Installer ==="
+          $autoclawUrl = "https://autoglm-public-oss.z.ai/autoclaw/updates/autoclaw-1.18.5-setup.exe"
+          $destSetup = "C:\Users\Public\Desktop\AutoClaw-Setup.exe"
+          Invoke-WebRequest $autoclawUrl -OutFile $destSetup
+          if (Test-Path "C:\Users\trader\Desktop") {
+            Copy-Item $destSetup "C:\Users\trader\Desktop\AutoClaw-Setup.exe" -Force -ErrorAction SilentlyContinue
+          }
+
+          Write-Output "=== [3/4] Installing AutoClaw Desktop App ==="
+          Start-Process $destSetup -ArgumentList "/S" -Wait -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 8
+
+          # Copy AutoClaw shortcuts to both Public and trader Desktops
+          Get-ChildItem -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs" -Filter "*AutoClaw*" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+            Copy-Item $_.FullName "C:\Users\Public\Desktop\" -Force -ErrorAction SilentlyContinue
+            if (Test-Path "C:\Users\trader\Desktop") {
+              Copy-Item $_.FullName "C:\Users\trader\Desktop\" -Force -ErrorAction SilentlyContinue
+            }
+          }
+          Get-ChildItem -Path "$env:USERPROFILE\Desktop" -Filter "*AutoClaw*" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+            Copy-Item $_.FullName "C:\Users\Public\Desktop\" -Force -ErrorAction SilentlyContinue
+            if (Test-Path "C:\Users\trader\Desktop") {
+              Copy-Item $_.FullName "C:\Users\trader\Desktop\" -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+          Write-Output "=== [4/4] Pre-installing openclaw CLI globally ==="
+          npm install -g openclaw@latest --allow-scripts=openclaw -ErrorAction SilentlyContinue
+          Write-Output "AutoClaw and OpenClaw pre-installed successfully!"
+
       - name: Keep alive + self-heal (master)
         shell: pwsh
         env:
@@ -310,7 +357,7 @@ jobs:
             if (-not $tsSvc -or $tsSvc.Status -ne "Running") {
               Write-Output ">> tailscale down, rejoining as master-1"
               Start-Sleep -Seconds 2
-              & $ts up --authkey=$env:TS_AUTHKEY --hostname="master-1"
+              & $ts up --authkey=$env:TS_AUTHKEY --hostname="master-1" --unattended
             }
             Get-Service -Name TermService -ErrorAction SilentlyContinue | Where-Object { $_.Status -ne "Running" } | ForEach-Object {
               Write-Output ">> restarting TermService"
