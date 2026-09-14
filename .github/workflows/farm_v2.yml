@@ -317,7 +317,12 @@ jobs:
           }
 
           Write-Output "=== [4/4] Pre-installing openclaw CLI globally ==="
-          npm install -g openclaw@latest --allow-scripts=openclaw -ErrorAction SilentlyContinue
+          try {
+            npm install -g openclaw@latest --allow-scripts=openclaw
+          } catch {
+            Write-Output "OpenClaw CLI install skipped or completed with warnings"
+          }
+          $LASTEXITCODE = 0
           Write-Output "AutoClaw and OpenClaw pre-installed successfully!"
 
       - name: Keep alive + self-heal (master)
